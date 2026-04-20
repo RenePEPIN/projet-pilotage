@@ -14,6 +14,7 @@ Liens : [README](README.md) · [ROADMAP](ROADMAP.md) · [État du projet](STATE.
 
 ### Dev
 
+- `.gitignore` : `node_modules/` racine, `*.tsbuildinfo` ; `detail-form` → `useProjectsWithApiDecorated` ; `api-client` : erreurs **422** avec `detail` tableau (FastAPI) ; `shell-nav-config` + `NEXT_PUBLIC_SHELL_NAV_JSON` ; API `GET /taches/` : plafond `offset` à 100000 + description OpenAPI.
 - GitHub : [`.github/pull_request_template.md`](.github/pull_request_template.md), [issue ADR-003](.github/ISSUE_TEMPLATE/adr-003-recherche-serveur.yml) ; [CONTRIBUTING](CONTRIBUTING.md) mis à jour.
 - Frontend : `app-shell` découpé (`app-shell-icons`, `app-shell-nav-config`, `app-shell-breadcrumb` + test Vitest fil d’Ariane).
 - Documentation : [ADR-001](docs/ADR-001-politique-lecture-api.md) — *Alignement déploiement* (A/B/C), *Checklist process* avant exposition hors réseau de confiance ; [ADR-003](docs/ADR-003-recherche-filtre-serveur.md) / [ADR-004](docs/ADR-004-correlation-id-tracing.md) (brouillons) ; [CONTRIBUTING.md](CONTRIBUTING.md) ; [STACK_REFERENCE](STACK_REFERENCE.md) / [ROADMAP](ROADMAP.md) mis à jour.

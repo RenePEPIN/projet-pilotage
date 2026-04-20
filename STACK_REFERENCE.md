@@ -56,6 +56,8 @@ PostgreSQL est compatible via `DATABASE_URL` ; dimensionner le **pooling** des c
 
 **Appels API navigateur** : same-origin via `/api/proxy/...` ; pas de secret d’écriture dans le bundle client.
 
+**Shell (navigation)** : entrées par défaut dans [`frontend/app/lib/shell-nav-config.js`](frontend/app/lib/shell-nav-config.js) ; surcharge optionnelle **`NEXT_PUBLIC_SHELL_NAV_JSON`** (voir README) pour ne pas figer les liens dashboard par ID de projet dans chaque déploiement.
+
 **Recherche & export (pilotage)** : la **recherche globale** (`/search?q=`) et le filtre backlog `?q=` appliquent un filtre **côté navigateur** sur l’ensemble des tâches chargées (boucle pagination `getAllTasksGlobal`, plafond de pages côté client). L’API `/taches/` n’expose pas de paramètre texte de recherche. **Évolution volumétrie** : prévoir un **filtre / recherche côté API** (paramètres de requête, index SQL full-text ou trigram selon besoin) — [ADR-003 (brouillon)](docs/ADR-003-recherche-filtre-serveur.md) à promouvoir avant code ; voir [ROADMAP](ROADMAP.md). **Export CSV** : génération navigateur (Blob), séparateur `;`, BOM UTF-8 pour Excel.
 
 **Notes stratégiques** : panneau depuis la barre d’actions ; **source de vérité** `GET/PUT /strategic-notes/` (workspace `global`, voir [ADR-002](docs/ADR-002-notes-strategiques-api.md)). **PUT** via proxy Next avec clé serveur ; **copie locale** `localStorage` (`pilotage-strategic-notes`) en secours. Pas d’auth utilisateur fine ni chiffrement au repos.

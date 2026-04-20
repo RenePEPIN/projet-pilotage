@@ -128,6 +128,33 @@ describe("api-client write-safe retry", () => {
     ).rejects.toThrow("Delai depasse (504) : upstream timeout");
   });
 
+  it("maps POST 422 with FastAPI validation array detail", async () => {
+    global.fetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          detail: [
+            {
+              loc: ["body", "titre"],
+              msg: "field required",
+              type: "value_error.missing",
+            },
+          ],
+        }),
+        {
+          status: 422,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(
+      request("/taches/", {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    ).rejects.toThrow("Donnees invalides: body.titre: field required");
+  });
+
   it("does not retry PATCH on transient 500", async () => {
     global.fetch.mockResolvedValueOnce(
       new Response("Internal Server Error", { status: 500 }),

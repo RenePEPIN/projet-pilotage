@@ -33,7 +33,15 @@ def get_all_taches(
     request: Request,
     project_id: str | None = None,
     limit: int = Query(default=100, ge=1, le=500),
-    offset: int = Query(default=0, ge=0, le=10_000_000),
+    offset: int = Query(
+        default=0,
+        ge=0,
+        le=100_000,
+        description=(
+            "Decalage pagination. Plafond a 100000 pour limiter le cout des requetes "
+            "avec un OFFSET eleve sur une grande table (scan / tri)."
+        ),
+    ),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     if offset > 1000:

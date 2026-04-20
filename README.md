@@ -228,6 +228,8 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
 WRITE_API_KEY=changez-moi-en-production
 ```
 
+**Optionnel — navigation latérale (liens « projets vedettes »)** : sans variable, les entrées par défaut du dépôt s’affichent. Pour un autre environnement, définir `NEXT_PUBLIC_SHELL_NAV_JSON` avec un JSON valide (tableau de groupes `{ "title", "items": [{ "href", "label", "icon" }] }`). Voir [`frontend/app/lib/shell-nav-config.js`](frontend/app/lib/shell-nav-config.js). Rebuild du frontend après changement (variable injectée au build).
+
 ## Démarrage du projet
 
 ### 1. Initialiser la base

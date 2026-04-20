@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { getShellNavGroups } from "../lib/shell-nav-config";
 import { toBreadcrumb } from "./app-shell-breadcrumb";
 import { IconChevron, IconMenu } from "./app-shell-icons";
-import { navGroups } from "./app-shell-nav-config";
 import StrategicNotesPanel from "./strategic-notes-panel";
 
 export default function AppShell({ children }) {
@@ -18,6 +18,7 @@ export default function AppShell({ children }) {
   const [isStrategicNotesOpen, setIsStrategicNotesOpen] = useState(false);
 
   const breadcrumbs = useMemo(() => toBreadcrumb(pathname), [pathname]);
+  const navGroups = useMemo(() => getShellNavGroups(), []);
 
   function handleGlobalSearchSubmit(event) {
     event.preventDefault();

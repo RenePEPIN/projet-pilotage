@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useReducer, useRef } from "react";
-import { useProjects } from "../hooks/use-projects";
+import { useProjectsWithApiDecorated } from "../hooks/use-projects";
 import {
   createTask,
   getAllTasksByProjectId,
@@ -84,7 +84,8 @@ export default function DetailForm({ searchParams }) {
     isLoadingTask,
   } = state;
 
-  const { projects, isLoadingProjects, projectError } = useProjects();
+  const { projects, isLoadingProjects, projectError } =
+    useProjectsWithApiDecorated();
   const destinationUrl = `/projects/${projectId}`;
 
   /** Distinguer changement de projet utilisateur vs chargement depuis l’API. */

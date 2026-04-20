@@ -11,6 +11,37 @@ function isRetryable(error, status) {
   return false;
 }
 
+/**
+ * FastAPI : `detail` peut être une chaîne ou une liste d’objets de validation
+ * `{ loc, msg, type }`.
+ */
+function extractReadableDetail(parsed, fallbackText) {
+  if (!parsed || typeof parsed !== "object" || !("detail" in parsed)) {
+    return fallbackText;
+  }
+  const d = parsed.detail;
+  if (typeof d === "string") {
+    return d;
+  }
+  if (Array.isArray(d)) {
+    const parts = [];
+    for (const item of d) {
+      if (item && typeof item === "object" && typeof item.msg === "string") {
+        const loc = Array.isArray(item.loc)
+          ? item.loc.filter(Boolean).join(".")
+          : "";
+        parts.push(loc ? `${loc}: ${item.msg}` : item.msg);
+      } else if (typeof item === "string") {
+        parts.push(item);
+      }
+    }
+    if (parts.length > 0) {
+      return parts.join(" ; ");
+    }
+  }
+  return fallbackText;
+}
+
 async function fetchWithRetry(url, fetchOptions, maxRetries) {
   let lastError;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -63,9 +94,7 @@ export async function request(path, options = {}) {
 
     try {
       const parsed = JSON.parse(errorText);
-      if (parsed && typeof parsed.detail === "string") {
-        detail = parsed.detail;
-      }
+      detail = extractReadableDetail(parsed, errorText);
     } catch {
       /* corps non JSON : conserver le texte brut */
     }
