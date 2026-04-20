@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import "./globals.css";
 import AppShell from "./components/app-shell";
 
@@ -10,7 +11,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="fr">
       <body>
-        <AppShell>{children}</AppShell>
+        <Suspense fallback={<div className="shell-suspense-fallback" />}>
+          <AppShell>{children}</AppShell>
+        </Suspense>
       </body>
     </html>
   );

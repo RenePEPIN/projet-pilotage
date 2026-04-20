@@ -1,0 +1,17 @@
+name: Repo guards
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+
+jobs:
+  secret-patterns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for high-risk secret patterns in tracked files
+        run: bash scripts/check-repo-guards.sh

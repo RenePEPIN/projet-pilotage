@@ -6,18 +6,17 @@ Create Date: 2026-04-19
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 from alembic_inspection import column_exists, index_exists
 
-
 revision: str = "0004_add_due_date_to_taches"
-down_revision: Union[str, Sequence[str], None] = "0003_add_parent_task_dependency"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "0003_add_parent_task_dependency"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

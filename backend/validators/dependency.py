@@ -21,14 +21,14 @@ class DependencyValidationError(ValueError):
 def validate_parent_exists(db: Session, parent_task_id: int) -> TacheModel:
     """
     Validate that a parent task exists in the database.
-    
+
     Args:
         db: Database session
         parent_task_id: ID of the parent task
-        
+
     Returns:
         The parent TacheModel if it exists
-        
+
     Raises:
         DependencyValidationError: If parent task not found
     """
@@ -41,11 +41,11 @@ def validate_parent_exists(db: Session, parent_task_id: int) -> TacheModel:
 def validate_same_project(parent: TacheModel, project_id: str) -> None:
     """
     Validate that parent and child tasks belong to the same project.
-    
+
     Args:
         parent: Parent TacheModel
         project_id: Project ID of the child task
-        
+
     Raises:
         DependencyValidationError: If tasks are in different projects
     """
@@ -58,11 +58,11 @@ def validate_same_project(parent: TacheModel, project_id: str) -> None:
 def validate_no_self_dependency(tache_id: int, parent_task_id: int | None) -> None:
     """
     Validate that a task does not depend on itself.
-    
+
     Args:
         tache_id: ID of the task
         parent_task_id: ID of the proposed parent task
-        
+
     Raises:
         DependencyValidationError: If task would depend on itself
     """
@@ -80,16 +80,16 @@ def validate_no_cycle(
 ) -> None:
     """
     Validate that adding a parent_task_id to tache_id does not create a cycle.
-    
+
     Optimized to load all parent mappings in a single DB query instead of
     querying for each level of the dependency tree.
-    
+
     Args:
         db: Database session
         tache_id: ID of the task being updated
         parent_task_id: ID of the proposed parent task
         project_id: Optional project ID to filter cycle detection
-        
+
     Raises:
         DependencyValidationError: If adding this dependency would create a cycle
     """

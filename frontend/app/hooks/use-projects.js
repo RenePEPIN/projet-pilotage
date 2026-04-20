@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getProjects, getDefaultProjects } from "../lib/project-api";
+import { decorateProjectApiCreatedAt } from "../lib/project-decorate";
 
 export function useProjects({
   decorateProject = null,
@@ -39,8 +40,12 @@ export function useProjects({
           ? normalizedProjects.map((project) => projectDecorator(project))
           : normalizedProjects,
       );
-    } catch {
-      setProjectError("Impossible de charger les projets depuis l'API.");
+    } catch (err) {
+      const suffix =
+        err instanceof Error && err.message ? ` ${err.message}` : "";
+      setProjectError(
+        `Impossible de charger les projets depuis l'API.${suffix}`,
+      );
     } finally {
       setIsLoadingProjects(false);
     }
@@ -56,4 +61,12 @@ export function useProjects({
     projectError,
     refreshProjects,
   };
+}
+
+/** Projets avec décorateur `createdAt: "API"` (même comportement que l’inline historique). */
+export function useProjectsWithApiDecorated(options = {}) {
+  return useProjects({
+    ...options,
+    decorateProject: decorateProjectApiCreatedAt,
+  });
 }

@@ -11,15 +11,10 @@ DEFAULT_PROJECTS = [
 
 
 def ensure_default_projects(db: Session) -> None:
-    existing_ids = {
-        item.id
-        for item in db.query(ProjectModel.id).all()
-    }
+    existing_ids = {item.id for item in db.query(ProjectModel.id).all()}
 
     to_insert = [
-        ProjectModel(**project)
-        for project in DEFAULT_PROJECTS
-        if project["id"] not in existing_ids
+        ProjectModel(**project) for project in DEFAULT_PROJECTS if project["id"] not in existing_ids
     ]
 
     if to_insert:

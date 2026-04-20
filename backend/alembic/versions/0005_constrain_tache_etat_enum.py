@@ -6,18 +6,17 @@ Create Date: 2026-04-19
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 from alembic_inspection import check_constraint_exists
 
-
 revision: str = "0005_constrain_tache_etat_enum"
-down_revision: Union[str, Sequence[str], None] = "0004_add_due_date_to_taches"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "0004_add_due_date_to_taches"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 ALLOWED_STATUS_VALUES = ("A faire", "En cours", "Terminee")

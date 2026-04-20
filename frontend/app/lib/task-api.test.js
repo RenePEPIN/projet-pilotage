@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTask,
   getAllTasksByProjectId,
+  getAllTasksGlobal,
   getTasks,
   getTasksByProjectId,
 } from "./task-api";
@@ -210,5 +211,35 @@ describe("task-api", () => {
     await expect(getAllTasksByProjectId("invalid-project")).rejects.toThrow(
       "Projet non trouve",
     );
+  });
+
+  it("getAllTasksGlobal charge GET /taches/ jusqu a pagination complete", async () => {
+    global.fetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          taches: [
+            {
+              id: 1,
+              titre: "Global",
+              description: "",
+              etat: "A faire",
+              section: "backend",
+              project_id: "p1",
+              parent_task_id: null,
+              due_date: null,
+            },
+          ],
+          limit: 100,
+          offset: 0,
+          count: 1,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const all = await getAllTasksGlobal();
+    expect(all).toHaveLength(1);
+    expect(all[0].titre).toBe("Global");
+    expect(String(global.fetch.mock.calls[0][0])).toContain("/taches/");
   });
 });

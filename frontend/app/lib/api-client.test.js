@@ -58,12 +58,30 @@ describe("api-client write-safe retry", () => {
         method: "POST",
         body: JSON.stringify({ titre: "t" }),
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow("Serveur indisponible : service unavailable");
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("does not retry PUT on transient 502", async () => {
+  it("maps 503 without JSON detail to default French message", async () => {
+    global.fetch.mockResolvedValueOnce(
+      new Response("", {
+        status: 503,
+        headers: { "Content-Type": "text/plain" },
+      }),
+    );
+
+    await expect(
+      request("/taches/", {
+        method: "POST",
+        body: JSON.stringify({ titre: "x" }),
+      }),
+    ).rejects.toThrow(
+      "Serveur indisponible : le backend ne repond pas ou le delai est depasse.",
+    );
+  });
+
+  it("does not retry PUT on transient 502 and maps message in French", async () => {
     global.fetch.mockResolvedValueOnce(
       new Response("Bad Gateway", { status: 502 }),
     );
@@ -73,9 +91,41 @@ describe("api-client write-safe retry", () => {
         method: "PUT",
         body: JSON.stringify({ titre: "updated" }),
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow("Erreur passerelle (502) : Bad Gateway");
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps POST 500 with JSON detail in French", async () => {
+    global.fetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "Internal bug" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(
+      request("/taches/", {
+        method: "POST",
+        body: JSON.stringify({ titre: "t" }),
+      }),
+    ).rejects.toThrow("Erreur serveur (500) : Internal bug");
+  });
+
+  it("maps POST 504 with JSON detail in French", async () => {
+    global.fetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "upstream timeout" }), {
+        status: 504,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(
+      request("/taches/", {
+        method: "POST",
+        body: JSON.stringify({ titre: "t" }),
+      }),
+    ).rejects.toThrow("Delai depasse (504) : upstream timeout");
   });
 
   it("does not retry PATCH on transient 500", async () => {

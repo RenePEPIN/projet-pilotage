@@ -12,7 +12,6 @@ from crud.project import (
 from dependencies import get_db, require_write_auth
 from schemas.project import Project, ProjectCreate, ProjectUpdate
 
-
 router = APIRouter()
 
 

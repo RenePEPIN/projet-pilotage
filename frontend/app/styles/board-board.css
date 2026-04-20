@@ -1,0 +1,176 @@
+/* Tableau de bord : KPI strip, pagination — import depuis globals.css ; ordre de cascade global à respecter. */
+/* Tableau de bord — synthese compacte (remplace la grille KPI sur la page board) */
+.kpi-strip {
+  margin-top: 16px;
+}
+
+.kpi-strip-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.kpi-strip-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.kpi-strip-label {
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.kpi-strip-value {
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.kpi-strip-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--line);
+  align-self: center;
+}
+
+.pagination-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fafcfe;
+}
+
+.pagination-meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pagination-btn {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.project-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.project-hero h1 {
+  margin: 0 0 4px;
+}
+
+.hero-subtitle-tight {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.project-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.project-picker-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: min(100%, 260px);
+}
+
+.project-picker {
+  width: 100%;
+  max-width: 280px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+}
+
+.primary-cta-board {
+  align-self: center;
+  padding: 11px 18px;
+  font-size: 0.92rem;
+}
+
+.board-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 20px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.board-filters-label {
+  margin-bottom: 6px;
+}
+
+.board-filters-status {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.board-filters-category {
+  flex: 0 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(100%, 220px);
+}
+
+.category-filter-select {
+  width: 100%;
+  max-width: 280px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+}
+
+.chip-row-tight {
+  margin-top: 0;
+}
+
+.project-dashboard-root {
+  display: grid;
+  gap: 20px;
+}
+
+.project-dashboard-lead {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.project-dashboard-categories .todo-table {
+  margin-top: 4px;
+}
+
+.project-dashboard-root .project-card {
+  border-color: #e3e8f0;
+}
+
+.project-dashboard-root .project-card:hover {
+  border-color: #b8cce8;
+}

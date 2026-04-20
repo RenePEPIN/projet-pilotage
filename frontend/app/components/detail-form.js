@@ -8,7 +8,6 @@ import {
   createTask,
   getAllTasksByProjectId,
   getTaskById,
-  getTasksByProjectId,
   updateTask,
 } from "../lib/task-api";
 import {
@@ -16,6 +15,8 @@ import {
   STORAGE_LABELS_KEY,
   STORAGE_ORDER_KEY,
 } from "./category-constants";
+import { DetailFormActions } from "./detail-form-actions";
+import { DetailFormFields } from "./detail-form-fields";
 
 const initialState = {
   categoryLabels: DEFAULT_CATEGORY_LABELS,
@@ -86,7 +87,7 @@ export default function DetailForm({ searchParams }) {
   const { projects, isLoadingProjects, projectError } = useProjects();
   const destinationUrl = `/projects/${projectId}`;
 
-  // Track projectId from task loading to distinguish user changes from API loads
+  /** Distinguer changement de projet utilisateur vs chargement depuis l’API. */
   const projectIdFromTaskLoadRef = useRef(null);
 
   const sectionLabel = useMemo(
@@ -111,7 +112,7 @@ export default function DetailForm({ searchParams }) {
           value: { ...DEFAULT_CATEGORY_LABELS, ...JSON.parse(storedLabels) },
         });
       } catch {
-        // Ignore invalid localStorage payload
+        /* JSON localStorage invalide : ignorer */
       }
     }
 
@@ -133,7 +134,7 @@ export default function DetailForm({ searchParams }) {
           }
         }
       } catch {
-        // Ignore invalid localStorage payload
+        /* JSON localStorage invalide : ignorer */
       }
     }
 
@@ -193,7 +194,6 @@ export default function DetailForm({ searchParams }) {
         dispatch({ type: "LOAD_TASK", task });
       } catch (error) {
         if (isMounted) {
-          // QW-51: Propagate actual error message from API
           const errorMsg =
             error instanceof Error
               ? error.message
@@ -223,14 +223,12 @@ export default function DetailForm({ searchParams }) {
 
     let isMounted = true;
 
-    // Only reset parentTaskId if projectId changed due to user action, not task loading
     const isUserInitiatedChange =
       projectIdFromTaskLoadRef.current !== projectId;
     if (isUserInitiatedChange) {
       dispatch({ type: "SET_FIELD", field: "parentTaskId", value: null });
     }
 
-    // QW-50: Load all tasks across pages for parent selection
     getAllTasksByProjectId(projectId)
       .then((tasks) => {
         if (isMounted) {
@@ -240,7 +238,6 @@ export default function DetailForm({ searchParams }) {
       })
       .catch((error) => {
         if (isMounted) {
-          // QW-51: Propagate actual error message from API
           const errorMsg =
             error instanceof Error
               ? error.message
@@ -275,7 +272,13 @@ export default function DetailForm({ searchParams }) {
       } else {
         const created = await createTask(payload, metadata);
         router.push(
-          `${destinationUrl}?ajouter=${encodeURIComponent(created.id)}&section=${encodeURIComponent(section)}&sectionLabel=${encodeURIComponent(sectionLabel)}&projectName=${encodeURIComponent(projectName)}`,
+          `${destinationUrl}?ajouter=${encodeURIComponent(
+            created.id,
+          )}&section=${encodeURIComponent(
+            section,
+          )}&sectionLabel=${encodeURIComponent(
+            sectionLabel,
+          )}&projectName=${encodeURIComponent(projectName)}`,
         );
       }
     } catch (error) {
@@ -310,202 +313,32 @@ export default function DetailForm({ searchParams }) {
 
       <section id="tache" className="form-panel">
         <form className="detail-form" onSubmit={handleSubmit}>
-          {isLoadingProjects ? <p>Chargement des projets...</p> : null}
-          {isLoadingTask ? <p>Chargement de la tache...</p> : null}
-          {errorMessage ? <p className="info-banner">{errorMessage}</p> : null}
-
-          <label className="field-row" htmlFor="titre">
-            <span>Titre</span>
-            <input
-              className="ui-input"
-              type="text"
-              id="titre"
-              name="tache_titre"
-              value={titre}
-              onChange={(event) =>
-                dispatch({
-                  type: "SET_FIELD",
-                  field: "titre",
-                  value: event.target.value,
-                })
-              }
-              required
-            />
-          </label>
-
-          <label className="field-row" htmlFor="description">
-            <span>Description</span>
-            <input
-              className="ui-input"
-              type="text"
-              id="description"
-              name="tache_description"
-              value={description}
-              onChange={(event) =>
-                dispatch({
-                  type: "SET_FIELD",
-                  field: "description",
-                  value: event.target.value,
-                })
-              }
-            />
-          </label>
-
-          <label className="field-row" htmlFor="etat">
-            <span>Etat</span>
-            <select
-              className="ui-select"
-              id="etat"
-              name="tache_etat"
-              value={etat}
-              onChange={(event) =>
-                dispatch({
-                  type: "SET_FIELD",
-                  field: "etat",
-                  value: event.target.value,
-                })
-              }
-              required
-            >
-              <option value="aFaire">A Faire</option>
-              <option value="enCours">En Cours</option>
-              <option value="terminee">Terminee</option>
-            </select>
-          </label>
-
-          <label className="field-row" htmlFor="projectId">
-            <span>Projet</span>
-            <select
-              className="ui-select"
-              id="projectId"
-              name="projectId"
-              value={projectId}
-              onChange={(event) =>
-                dispatch({
-                  type: "SET_FIELD",
-                  field: "projectId",
-                  value: event.target.value,
-                })
-              }
-              required
-              disabled={isLoadingProjects}
-            >
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-row" htmlFor="section">
-            <span>Categorie</span>
-            <select
-              className="ui-select"
-              id="section"
-              name="section"
-              value={section}
-              onChange={(event) =>
-                dispatch({
-                  type: "SET_FIELD",
-                  field: "section",
-                  value: event.target.value,
-                })
-              }
-              required={!isModification}
-            >
-              <option value="">--Choisir une categorie--</option>
-              {categoryOrder.map((categoryKey) => (
-                <option key={categoryKey} value={categoryKey}>
-                  {categoryLabels[categoryKey] ?? categoryKey}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-row" htmlFor="parentTaskId">
-            <span>Tache parente</span>
-            <select
-              className="ui-select"
-              id="parentTaskId"
-              name="parentTaskId"
-              value={parentTaskId || ""}
-              onChange={(event) =>
-                dispatch({
-                  type: "SET_FIELD",
-                  field: "parentTaskId",
-                  value: event.target.value || null,
-                })
-              }
-            >
-              <option value="">-- Aucune (tache racine) --</option>
-              {projectTasks
-                .filter((t) => t.id !== idTache)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.titre}
-                  </option>
-                ))}
-            </select>
-          </label>
-
-          <label className="field-row" htmlFor="dueDate">
-            <span>Echeance</span>
-            <input
-              className="ui-input"
-              type="date"
-              id="dueDate"
-              name="dueDate"
-              value={dueDate}
-              onChange={(event) =>
-                dispatch({
-                  type: "SET_FIELD",
-                  field: "dueDate",
-                  value: event.target.value,
-                })
-              }
-            />
-          </label>
-
-          <div id="actions" className="action-row">
-            {isModification ? (
-              <>
-                <button
-                  type="submit"
-                  id="lienModifier"
-                  className="primary-cta small ui-btn ui-btn-primary"
-                  disabled={isSubmitting || isLoadingTask}
-                >
-                  Modifier
-                </button>
-                <Link
-                  href={`${destinationUrl}?annulerModifier=${idTache}`}
-                  id="lienAnnulerModification"
-                  className="action-link ui-btn ui-btn-secondary"
-                >
-                  Annuler
-                </Link>
-              </>
-            ) : (
-              <>
-                <button
-                  type="submit"
-                  id="lienAjouter"
-                  className="primary-cta small ui-btn ui-btn-primary"
-                  disabled={isSubmitting || isLoadingTask}
-                >
-                  Ajouter
-                </button>
-                <Link
-                  href={`${destinationUrl}?annulerAjouter=1`}
-                  id="lienAnnulerAjouter"
-                  className="action-link ui-btn ui-btn-secondary"
-                >
-                  Annuler
-                </Link>
-              </>
-            )}
-          </div>
+          <DetailFormFields
+            dispatch={dispatch}
+            isLoadingProjects={isLoadingProjects}
+            isLoadingTask={isLoadingTask}
+            errorMessage={errorMessage}
+            titre={titre}
+            description={description}
+            etat={etat}
+            section={section}
+            projectId={projectId}
+            dueDate={dueDate}
+            parentTaskId={parentTaskId}
+            categoryLabels={categoryLabels}
+            categoryOrder={categoryOrder}
+            projects={projects}
+            projectTasks={projectTasks}
+            idTache={idTache}
+            isModification={isModification}
+          />
+          <DetailFormActions
+            isModification={isModification}
+            idTache={idTache}
+            destinationUrl={destinationUrl}
+            isSubmitting={isSubmitting}
+            isLoadingTask={isLoadingTask}
+          />
         </form>
       </section>
     </main>

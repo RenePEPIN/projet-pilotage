@@ -23,6 +23,14 @@ class TacheModel(Base):
     description: Mapped[str] = mapped_column(String(1000), default="", nullable=False)
     etat: Mapped[Etat] = mapped_column(_status_enum, nullable=False)
     section: Mapped[str] = mapped_column(String(80), default="backend", nullable=False)
-    project_id: Mapped[str] = mapped_column(String(120), default="projet-api-principal", nullable=False)
-    parent_task_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("taches.id", ondelete="SET NULL"), nullable=True, default=None, index=True)
+    project_id: Mapped[str] = mapped_column(
+        String(120), default="projet-api-principal", nullable=False
+    )
+    parent_task_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("taches.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+        index=True,
+    )
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True, default=None, index=True)

@@ -2,6 +2,7 @@ export const STORAGE_LABELS_KEY = "todo-category-labels";
 export const STORAGE_ORDER_KEY = "todo-category-order";
 export const STORAGE_PROJECTS_KEY = "todo-project-list";
 export const STORAGE_ACTIVE_PROJECT_KEY = "todo-active-project";
+export { STORAGE_STRATEGIC_NOTES_KEY } from "../lib/strategic-notes-local";
 
 export const DEFAULT_CATEGORY_LABELS = {
   backend: "Backend FastAPI",

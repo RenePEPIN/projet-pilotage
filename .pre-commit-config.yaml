@@ -1,0 +1,46 @@
+repos:
+  # ---------- Hooks generiques ----------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+
+  # ---------- Python : formatage ----------
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+        files: ^backend/
+
+  # ---------- Python : lint ----------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.12
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^backend/
+
+  # ---------- JavaScript/JSX : formatage ----------
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: ^frontend/
+        exclude: ^frontend/node_modules/
+        types_or: [javascript, jsx, json, css, markdown]
+
+  # ---------- JavaScript/JSX : lint (Next ESLint, portable Windows/Linux/macOS) ----------
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint (frontend)
+        entry: npm run lint:fix --prefix frontend
+        language: system
+        files: ^frontend/
+        pass_filenames: false

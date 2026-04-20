@@ -1,0 +1,36 @@
+/* Jetons CSS (:root) — import depuis globals.css ; ordre de cascade global à respecter. */
+:root {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface-soft: #f1f3f4;
+  --ink: #202124;
+  --muted: #5f6368;
+  --line: #e0e3e7;
+  --brand: #1a73e8;
+  --brand-soft: #e8f0fe;
+  --danger: #ea4335;
+  --warning: #fbbc05;
+  --success: #34a853;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --elevation-1: 0 1px 2px rgba(60, 64, 67, 0.2),
+    0 1px 3px 1px rgba(60, 64, 67, 0.1);
+  --elevation-2: 0 2px 6px rgba(60, 64, 67, 0.22),
+    0 1px 3px rgba(60, 64, 67, 0.18);
+  --elevation-3: 0 8px 20px rgba(60, 64, 67, 0.22);
+  --table-visible-rows: 14;
+  /* Vue Tableau du tableau de bord projet : lignes visibles avant scroll vertical */
+  --project-table-visible-rows: 19;
+  --table-header-row-height: 3rem;
+  --table-body-row-slot: 3.125rem;
+  /* Kanban : nombre de cartes visibles par colonne avant defilement */
+  --kanban-visible-cards: 4;
+  --kanban-card-gap: 10px;
+  /* Hauteur indicative d'une carte (titre + meta + description + actions) */
+  --kanban-card-slot: 9.5rem;
+  /* Contenu principal : largeur max lisible */
+  --content-max-width: 1200px;
+  /* Anneau de focus (aligné sur base.css :focus-visible) */
+  --ring-focus: #8ab4f8;
+}

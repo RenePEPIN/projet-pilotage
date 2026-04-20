@@ -11,6 +11,18 @@ from validators.dependency import (
     validate_same_project,
 )
 
+# Réexport : les validateurs lèvent DependencyValidationError ; les routeurs et tests
+# importent ce type depuis crud.tache pour un point d’entrée unique (évite dérive d’import).
+__all__ = [
+    "DependencyValidationError",
+    "count_taches",
+    "create_tache",
+    "delete_tache",
+    "get_tache",
+    "list_taches",
+    "update_tache",
+]
+
 
 def count_taches(db: Session, project_id: str | None = None) -> int:
     query = db.query(TacheModel)

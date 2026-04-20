@@ -4,12 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
 
+import models.strategic_note  # noqa: F401 — enregistre le modèle sur Base.metadata
 from core.config import ALLOWED_ORIGINS
 from core.rate_limit import limiter
 from crud.project import ensure_default_projects
 from database import SessionLocal
 from routers.health import router as health_router
 from routers.projects import router as projects_router
+from routers.strategic_notes import router as strategic_notes_router
 from routers.taches import router as taches_router
 
 
@@ -50,4 +52,5 @@ Cette application permet de :
     app.include_router(health_router)
     app.include_router(projects_router)
     app.include_router(taches_router)
+    app.include_router(strategic_notes_router)
     return app

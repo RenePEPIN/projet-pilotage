@@ -1,15 +1,12 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8001";
-
-// Les routes d'écriture transitent par le proxy Next.js afin que la clé
-// WRITE_API_KEY reste confidentielle (jamais exposée au navigateur).
-const WRITE_PROXY_URL = "/api/proxy";
+// Lectures et écritures via le proxy Next (same-origin). La clé WRITE_API_KEY
+// reste côté serveur pour les mutations.
+const BROWSER_API_PROXY = "/api/proxy";
 
 const MAX_RETRIES = 3;
 const RETRYABLE_METHODS = new Set(["GET", "HEAD"]);
 
 function isRetryable(error, status) {
-  if (error instanceof TypeError) return true; // network error
+  if (error instanceof TypeError) return true; // erreur réseau
   if (status >= 500 && status !== 501) return true;
   return false;
 }
@@ -45,8 +42,7 @@ async function fetchWithRetry(url, fetchOptions, maxRetries) {
 export async function request(path, options = {}) {
   const method = (options.method || "GET").toUpperCase();
   const maxRetries = RETRYABLE_METHODS.has(method) ? MAX_RETRIES : 0;
-  const isWrite = method !== "GET" && method !== "HEAD";
-  const baseUrl = isWrite ? WRITE_PROXY_URL : API_BASE_URL;
+  const baseUrl = BROWSER_API_PROXY;
 
   const response = await fetchWithRetry(
     `${baseUrl}${path}`,
@@ -71,7 +67,7 @@ export async function request(path, options = {}) {
         detail = parsed.detail;
       }
     } catch {
-      // Keep raw text when body is not JSON
+      /* corps non JSON : conserver le texte brut */
     }
 
     if (response.status === 401) {
@@ -86,6 +82,35 @@ export async function request(path, options = {}) {
           ? `Donnees invalides: ${detail}`
           : "Donnees invalides: verifie les champs saisis.",
       );
+    }
+
+    if (response.status === 500) {
+      const defaut = "Erreur serveur : une erreur interne s'est produite.";
+      const corps =
+        detail && String(detail).trim() ? String(detail).trim() : "";
+      throw new Error(corps ? `Erreur serveur (500) : ${corps}` : defaut);
+    }
+
+    // 502 / 503 / 504 : erreurs passerelle ou disponibilité (souvent proxy ↔ backend).
+    if (response.status === 502) {
+      const defaut =
+        "Passerelle incorrecte : le service en amont ne repond pas.";
+      const corps =
+        detail && String(detail).trim() ? String(detail).trim() : "";
+      throw new Error(corps ? `Erreur passerelle (502) : ${corps}` : defaut);
+    }
+    if (response.status === 503) {
+      const defaut =
+        "Serveur indisponible : le backend ne repond pas ou le delai est depasse.";
+      const corps =
+        detail && String(detail).trim() ? String(detail).trim() : "";
+      throw new Error(corps ? `Serveur indisponible : ${corps}` : defaut);
+    }
+    if (response.status === 504) {
+      const defaut = "Delai depasse : le serveur n'a pas repondu a temps.";
+      const corps =
+        detail && String(detail).trim() ? String(detail).trim() : "";
+      throw new Error(corps ? `Delai depasse (504) : ${corps}` : defaut);
     }
 
     throw new Error(detail || `HTTP ${response.status}`);

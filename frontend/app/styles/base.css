@@ -1,0 +1,50 @@
+/* Base (body, focus, skip-link) — import depuis globals.css ; ordre de cascade global à respecter. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Google Sans", "Google Sans Text", "Segoe UI", "Roboto",
+    "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+  line-height: 1.45;
+}
+
+.skip-link {
+  position: absolute;
+  left: 10px;
+  top: -44px;
+  z-index: 200;
+  background: #0f172a;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #1f2a44;
+}
+
+.skip-link:focus {
+  top: 10px;
+  text-decoration: none;
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--ring-focus, #8ab4f8);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+/* Texte visible uniquement lecteurs d’écran */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

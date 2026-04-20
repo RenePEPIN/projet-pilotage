@@ -1,10 +1,5 @@
-import { Suspense } from "react";
-import HomeContent from "../../components/home-content";
+import { redirect } from "next/navigation";
 
-export default function ProjectTasksPage({ params }) {
-  return (
-    <Suspense fallback={<main className="travel-shell">Chargement...</main>}>
-      <HomeContent initialProjectId={params?.projectId} />
-    </Suspense>
-  );
+export default function ProjectIndexPage({ params }) {
+  redirect(`/projects/${params.projectId}/dashboard`);
 }

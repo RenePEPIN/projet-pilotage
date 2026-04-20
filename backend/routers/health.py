@@ -8,7 +8,6 @@ from core.rate_limit import limiter
 from database import db_backend_name, ping_database
 from dependencies import get_db
 
-
 logger = logging.getLogger(__name__)
 router = APIRouter()
 

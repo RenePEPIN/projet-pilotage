@@ -1,13 +1,13 @@
-from __future__ import with_statement
-
 import os
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+import models.project  # noqa: F401
+import models.strategic_note  # noqa: F401
+import models.tache  # noqa: F401
+from alembic import context
 from database import Base
-from models import project, tache  # noqa: F401
 
 config = context.config
 
@@ -15,7 +15,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Permet d'utiliser DATABASE_URL pour sqlite ou postgresql
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url")))
+config.set_main_option(
+    "sqlalchemy.url", os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+)
 
 target_metadata = Base.metadata
 

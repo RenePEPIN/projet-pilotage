@@ -24,7 +24,5 @@ ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw_origins.split(",") if o.st
 TRUST_PROXY_HEADERS = _parse_bool_env(os.getenv("TRUST_PROXY_HEADERS"), default=False)
 _trusted_proxy_ips_raw = os.getenv("TRUSTED_PROXY_IPS", "127.0.0.1,::1,localhost")
 TRUSTED_PROXY_IPS: set[str] = {
-    item.strip()
-    for item in _trusted_proxy_ips_raw.split(",")
-    if item.strip()
+    item.strip() for item in _trusted_proxy_ips_raw.split(",") if item.strip()
 }

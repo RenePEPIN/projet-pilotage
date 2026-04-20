@@ -18,7 +18,6 @@ from crud.tache import (
 from dependencies import get_db, require_write_auth
 from schemas.tache import Tache, TacheCreate, TacheUpdate
 
-
 logger = logging.getLogger(__name__)
 router = APIRouter()
 

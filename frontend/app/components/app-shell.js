@@ -1,66 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-
-const navGroups = [
-  {
-    title: "Workspace",
-    items: [
-      { href: "/", label: "Backlog", icon: "BL" },
-      { href: "/projects/projet-api-principal", label: "Board", icon: "BD" },
-      { href: "/projects", label: "Projets", icon: "PR" },
-    ],
-  },
-  {
-    title: "Pilotage",
-    items: [
-      {
-        href: "/projects/projet-api-principal",
-        label: "API Principal",
-        icon: "AP",
-      },
-      {
-        href: "/projects/lis-taches-apres-reunion",
-        label: "Post Reunion",
-        icon: "RE",
-      },
-    ],
-  },
-];
-
-function toBreadcrumb(pathname) {
-  if (!pathname || pathname === "/") {
-    return [{ label: "Backlog", href: "/" }];
-  }
-
-  const segments = pathname.split("/").filter(Boolean);
-  let current = "";
-
-  const crumbs = segments.map((segment) => {
-    current += `/${segment}`;
-    return {
-      label: segment
-        .replace(/-/g, " ")
-        .replace(/^./, (value) => value.toUpperCase()),
-      href: current,
-    };
-  });
-
-  return [{ label: "Backlog", href: "/" }, ...crumbs];
-}
+import { toBreadcrumb } from "./app-shell-breadcrumb";
+import { IconChevron, IconMenu } from "./app-shell-icons";
+import { navGroups } from "./app-shell-nav-config";
+import StrategicNotesPanel from "./strategic-notes-panel";
 
 export default function AppShell({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const qFromUrl = searchParams.get("q") || "";
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isStrategicNotesOpen, setIsStrategicNotesOpen] = useState(false);
 
   const breadcrumbs = useMemo(() => toBreadcrumb(pathname), [pathname]);
 
+  function handleGlobalSearchSubmit(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const raw = String(new FormData(form).get("q") || "").trim();
+    if (raw) {
+      router.push(`/search?q=${encodeURIComponent(raw)}`);
+    } else {
+      router.push("/search");
+    }
+  }
+
   function isItemActive(href) {
-    if (href === "/") {
-      return pathname === "/";
+    if (href === "/backlog") {
+      return pathname === "/backlog" || pathname.startsWith("/backlog/");
+    }
+    if (href === "/search") {
+      return pathname === "/search";
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
@@ -72,17 +47,34 @@ export default function AppShell({ children }) {
       </a>
 
       <aside
-        className={`shell-sidebar${isCollapsed ? " is-collapsed" : ""}${isMobileOpen ? " is-mobile-open" : ""}`}
+        id="app-shell-sidebar"
+        className={`shell-sidebar${isCollapsed ? " is-collapsed" : ""}${
+          isMobileOpen ? " is-mobile-open" : ""
+        }`}
       >
         <div className="shell-sidebar-head">
-          <span className="shell-brand">Pilotage</span>
+          <div className="shell-brand">
+            <Link href="/projects" className="shell-brand-link">
+              Pilotage
+            </Link>
+            <span className="shell-brand-tagline">Taches &amp; projets</span>
+          </div>
           <button
             type="button"
             className="shell-icon-btn"
             onClick={() => setIsCollapsed((prev) => !prev)}
-            aria-label="Replier la barre laterale"
+            aria-label={
+              isCollapsed
+                ? "Developper la barre laterale"
+                : "Replier la barre laterale"
+            }
+            title={
+              isCollapsed
+                ? "Developper la barre laterale"
+                : "Replier la barre laterale"
+            }
           >
-            {isCollapsed ? ">" : "<"}
+            <IconChevron direction={isCollapsed ? "right" : "left"} />
           </button>
         </div>
 
@@ -130,8 +122,10 @@ export default function AppShell({ children }) {
               className="shell-icon-btn mobile-only"
               onClick={() => setIsMobileOpen(true)}
               aria-label="Ouvrir la navigation"
+              aria-expanded={isMobileOpen}
+              aria-controls="app-shell-sidebar"
             >
-              |||
+              <IconMenu />
             </button>
 
             <nav className="shell-breadcrumbs" aria-label="Fil d'ariane">
@@ -149,15 +143,50 @@ export default function AppShell({ children }) {
           </div>
 
           <div className="shell-topbar-right">
-            <label className="shell-search" aria-label="Recherche globale">
-              <span className="shell-search-prefix">Recherche</span>
+            <form
+              className="shell-search"
+              role="search"
+              onSubmit={handleGlobalSearchSubmit}
+            >
+              <label
+                className="shell-search-prefix"
+                htmlFor="shell-search-input"
+              >
+                Recherche
+              </label>
               <input
+                id="shell-search-input"
                 type="search"
-                placeholder="Rechercher une tache, un projet..."
+                name="q"
+                autoComplete="off"
+                placeholder="Titre, projet, categorie…"
+                title="Recherche globale sur toutes les taches chargees"
+                aria-describedby="shell-search-help"
+                defaultValue={qFromUrl}
+                key={`${pathname}-${qFromUrl}`}
               />
-            </label>
+              <p id="shell-search-help" className="shell-search-hint">
+                Entree : page Resultats ; portee = toutes les taches (API).
+              </p>
+            </form>
 
             <div className="shell-actions" aria-label="Actions rapides">
+              <span className="sr-only">Raccourcis</span>
+              <button
+                type="button"
+                className="shell-quick-link"
+                onClick={() => setIsStrategicNotesOpen(true)}
+                aria-expanded={isStrategicNotesOpen}
+                aria-controls={
+                  isStrategicNotesOpen ? "strategic-notes-panel" : undefined
+                }
+                title="Notes strategiques (memoire locale)"
+              >
+                Notes
+              </button>
+              <Link href="/backlog" className="shell-quick-link">
+                Backlog
+              </Link>
               <Link href="/projects" className="shell-quick-link">
                 Projets
               </Link>
@@ -165,7 +194,7 @@ export default function AppShell({ children }) {
                 href="/detail?projectId=projet-api-principal"
                 className="shell-quick-link primary"
               >
-                + Tache
+                + Nouvelle tache
               </Link>
             </div>
           </div>
@@ -175,6 +204,11 @@ export default function AppShell({ children }) {
           {children}
         </main>
       </div>
+
+      <StrategicNotesPanel
+        open={isStrategicNotesOpen}
+        onClose={() => setIsStrategicNotesOpen(false)}
+      />
     </div>
   );
 }

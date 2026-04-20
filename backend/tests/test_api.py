@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from fastapi.testclient import TestClient
 
 # Force une base SQLite dédiée aux tests avant l'import de l'app.
 TEST_DB_PATH = Path("data/test_api.db")
@@ -272,8 +272,7 @@ def test_project_rename() -> None:
         list_response = client.get("/projects/")
     assert list_response.status_code == 200
     assert any(
-        project["id"] == "projet-api-principal"
-        and project["name"] == "Projet API Renomme"
+        project["id"] == "projet-api-principal" and project["name"] == "Projet API Renomme"
         for project in list_response.json()["projects"]
     )
 
@@ -768,3 +767,35 @@ def test_create_tache_rejects_invalid_due_date_format() -> None:
         response = client.post("/taches/", json=payload, headers=WRITE_HEADERS)
 
     assert response.status_code == 422
+
+
+def test_strategic_notes_get_creates_global_row() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        response = client.get("/strategic-notes/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["content"] == ""
+    assert "updated_at" in data
+
+
+def test_strategic_notes_put_requires_auth() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        response = client.put("/strategic-notes/", json={"content": "Hello"})
+    assert response.status_code == 401
+
+
+def test_strategic_notes_put_roundtrip() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        r1 = client.put(
+            "/strategic-notes/",
+            json={"content": "Strategie Q2"},
+            headers=WRITE_HEADERS,
+        )
+        assert r1.status_code == 200
+        assert r1.json()["content"] == "Strategie Q2"
+        r2 = client.get("/strategic-notes/")
+    assert r2.status_code == 200
+    assert r2.json()["content"] == "Strategie Q2"

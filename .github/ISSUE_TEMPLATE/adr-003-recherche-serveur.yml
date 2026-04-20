@@ -1,0 +1,34 @@
+name: Activer ADR-003 — recherche / filtre serveur
+description: Promouvoir l’ADR avant toute implémentation SQL ou extension de l’API GET /taches/.
+title: "[ADR-003] Activer recherche / filtre serveur"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Utiliser ce modèle lorsque la **volumétrie**, l’**exposition utilisateur** ou le **produit** justifient de ne plus tout charger côté navigateur. Voir [ADR-003 (brouillon)](docs/ADR-003-recherche-filtre-serveur.md).
+
+  - type: checkboxes
+    id: criteria
+    attributes:
+      label: Critères de déclenchement (au moins un coché)
+      options:
+        - label: Volumétrie (temps de chargement ou nombre de tâches trop élevé en conditions réelles)
+        - label: Besoin produit (recherche full-text, filtres combinés, etc.)
+        - label: Nouveaux clients de l’API (mobile, partenaires)
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte / métriques observées
+      description: Chiffres, captures, ou lien vers discussion.
+    validations:
+      required: false
+
+  - type: textarea
+    id: next
+    attributes:
+      label: Prochaine étape proposée
+      description: "Ex. faire valider l’ADR-003, puis tickets d’implémentation backend + frontend."
+    validations:
+      required: false

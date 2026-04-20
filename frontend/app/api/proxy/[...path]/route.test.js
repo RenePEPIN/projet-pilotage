@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { POST, PUT } from "./route";
+import { GET, POST, PUT } from "./route";
 
 describe("write proxy Content-Type validation", () => {
   beforeEach(() => {
+    process.env.WRITE_API_KEY = "test-proxy-key";
     global.fetch = vi.fn();
   });
 
   afterEach(() => {
+    delete process.env.WRITE_API_KEY;
     vi.restoreAllMocks();
   });
 
@@ -81,6 +83,52 @@ describe("write proxy Content-Type validation", () => {
     expect(response.headers.get("Allow")).toBe("POST, PUT, PATCH, DELETE");
     await expect(response.json()).resolves.toEqual({
       detail: "Methode non autorisee sur le proxy d'ecriture.",
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("forwards GET to the backend and returns JSON", async () => {
+    global.fetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ projects: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const request = new Request("http://localhost/api/proxy/projects?limit=1", {
+      method: "GET",
+    });
+
+    const response = await GET(request, {
+      params: Promise.resolve({ path: ["projects"] }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ projects: [] });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://127.0.0.1:8001/projects?limit=1",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("returns 503 when WRITE_API_KEY is empty", async () => {
+    delete process.env.WRITE_API_KEY;
+
+    const request = new Request("http://localhost/api/proxy/taches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ titre: "x" }),
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ["taches"] }),
+    });
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      detail:
+        "Configuration serveur : WRITE_API_KEY manquant ou vide pour le proxy d'ecriture. Definir la variable d'environnement sur l'instance Next.",
     });
     expect(global.fetch).not.toHaveBeenCalled();
   });

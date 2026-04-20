@@ -2,15 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useProjects } from "../hooks/use-projects";
+import { useProjectsWithApiDecorated } from "../hooks/use-projects";
 import { createProject, renameProject } from "../lib/project-api";
 import { STORAGE_ACTIVE_PROJECT_KEY } from "./category-constants";
 
 export default function ProjectsPageContent() {
   const { projects, isLoadingProjects, projectError, refreshProjects } =
-    useProjects({
-      decorateProject: (project) => ({ ...project, createdAt: "API" }),
-    });
+    useProjectsWithApiDecorated();
   const [newProjectName, setNewProjectName] = useState("");
   const [editingNames, setEditingNames] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
@@ -84,7 +82,7 @@ export default function ProjectsPageContent() {
           <span className="brand">App de pilotage</span>
           <nav className="top-links" aria-label="Navigation principale">
             <Link
-              href="/projects/projet-api-principal"
+              href="/projects/projet-api-principal/dashboard"
               className="panel-link"
               onClick={() =>
                 window.localStorage.setItem(
@@ -145,7 +143,7 @@ export default function ProjectsPageContent() {
               </div>
               <p className="project-meta">Cree le: {project.createdAt}</p>
               <Link
-                href={`/projects/${project.id}`}
+                href={`/projects/${project.id}/dashboard`}
                 className="action-link ui-btn ui-btn-secondary"
                 onClick={() =>
                   window.localStorage.setItem(
@@ -154,7 +152,7 @@ export default function ProjectsPageContent() {
                   )
                 }
               >
-                Ouvrir les taches
+                Tableau de bord
               </Link>
             </article>
           ))}

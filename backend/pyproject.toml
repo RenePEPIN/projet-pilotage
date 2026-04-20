@@ -1,0 +1,27 @@
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "E501",     # line-length (handled by black)
+    "B008",     # function-call-in-default-argument (FastAPI Depends)
+    "SIM108",   # ternary operator suggestion (readability preference)
+    "SIM117",   # combined with statement (readability preference)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "crud", "models", "routers", "schemas", "validators"]

@@ -3,6 +3,9 @@ import { toApiStatus, toUiStatus } from "./status-utils";
 
 const DEFAULT_LIMIT = 100;
 
+/** Limite de pages en boucle (recherche globale / calendrier) si la base grossit anormalement. */
+const MAX_TASK_FETCH_PAGES = 500;
+
 function normalizeFromApi(task) {
   return {
     id: String(task.id),
@@ -79,7 +82,9 @@ export async function getTasksByProjectId(
   { limit = DEFAULT_LIMIT, offset = 0, includeMeta = false } = {},
 ) {
   const payload = await request(
-    `/taches/?project_id=${encodeURIComponent(projectId)}&limit=${limit}&offset=${offset}`,
+    `/taches/?project_id=${encodeURIComponent(
+      projectId,
+    )}&limit=${limit}&offset=${offset}`,
   );
   const normalized = normalizeTaskCollection(payload);
   return includeMeta ? normalized : normalized.tasks;
@@ -109,6 +114,38 @@ export async function getAllTasksByProjectId(projectId) {
   return allTasks;
 }
 
+/**
+ * Toutes les taches (tous projets), pagination API globale.
+ * Utile pour la vue Backlog transversale.
+ */
+export async function getAllTasksGlobal() {
+  const allTasks = [];
+  let offset = 0;
+  const limit = DEFAULT_LIMIT;
+  let hasMore = true;
+  let pages = 0;
+
+  while (hasMore && pages < MAX_TASK_FETCH_PAGES) {
+    pages += 1;
+    const normalized = await getTasks({
+      limit,
+      offset,
+      includeMeta: true,
+    });
+    allTasks.push(...normalized.tasks);
+    hasMore = normalized.pagination.truncated;
+    offset += limit;
+  }
+
+  if (hasMore) {
+    console.warn(
+      `[task-api] getAllTasksGlobal: arret apres ${MAX_TASK_FETCH_PAGES} pages (plafond de securite).`,
+    );
+  }
+
+  return allTasks;
+}
+
 export async function getTaskById(taskId) {
   const payload = await request(`/taches/${taskId}`);
   return normalizeFromApi(payload);
@@ -126,6 +163,14 @@ export async function updateTask(taskId, task, metadata = {}) {
   const payload = await request(`/taches/${taskId}`, {
     method: "PUT",
     body: JSON.stringify(normalizeToApi(task, metadata)),
+  });
+  return normalizeFromApi(payload);
+}
+
+export async function patchTaskEtat(taskId, uiStatus) {
+  const payload = await request(`/taches/${taskId}`, {
+    method: "PUT",
+    body: JSON.stringify({ etat: toApiStatus(uiStatus) }),
   });
   return normalizeFromApi(payload);
 }

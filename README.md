@@ -34,7 +34,19 @@ Autrement dit, il reflète une approche d'ingénierie complète, pas seulement u
 - mise en place d'un proxy d'écriture Next.js pour protéger les secrets
 - validation métier sur les dépendances et détection de cycles
 - tests automatisés sur les comportements critiques
-- workflows GitHub Actions pour valider le backend et le build frontend
+- workflows GitHub Actions pour valider le backend, le build frontend et les garde-fous dépôt
+
+## Documentation de gouvernance
+
+| Document | Rôle |
+| -------- | ---- |
+| [`STACK_REFERENCE.md`](STACK_REFERENCE.md) | Stack et versions figées ; périmètre **DÉCISION REQUISE** pour les ajouts d’outillage. |
+| [`STATE.md`](STATE.md) | État courant du dépôt et liens vers la doc utile. |
+| [`ROADMAP.md`](ROADMAP.md) | Jalons et priorités (squelette à compléter). |
+| [`CHANGELOG.md`](CHANGELOG.md) | Notes de version (squelette [Unreleased]). |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Revue PR, garde-fous secrets, ADR / tickets (recherche serveur, correlation ID). |
+
+---
 
 ## Stack technique
 
@@ -45,8 +57,10 @@ Autrement dit, il reflète une approche d'ingénierie complète, pas seulement u
 | Backend         | FastAPI, SQLAlchemy, Pydantic v2                   |
 | Base de données | SQLite en local, PostgreSQL compatible             |
 | Migrations      | Alembic                                            |
-| Sécurité        | Proxy Next.js, validation JSON, CORS, CSP, SlowAPI |
+| Sécurité        | Proxy, CORS, CSP, SlowAPI ; GET non auth en dev.   |
 | CI              | GitHub Actions                                     |
+
+*Politique des lectures GET et détail sécurité : [ADR-001](docs/ADR-001-politique-lecture-api.md).*
 
 ## Architecture
 
@@ -74,6 +88,11 @@ Le frontend n'expose jamais la clé d'écriture au navigateur. Les mutations pas
 
 ```text
 .
+├── .pre-commit-config.yaml
+├── CHANGELOG.md
+├── ROADMAP.md
+├── STACK_REFERENCE.md
+├── STATE.md
 ├── backend/
 │   ├── alembic/
 │   ├── core/
@@ -85,6 +104,8 @@ Le frontend n'expose jamais la clé d'écriture au navigateur. Les mutations pas
 │   ├── app_factory.py
 │   ├── database.py
 │   └── main.py
+├── docs/
+│   └── ADR-001-politique-lecture-api.md
 ├── frontend/
 │   ├── app/
 │   │   ├── api/proxy/[...path]/
@@ -125,15 +146,41 @@ Le frontend n'expose jamais la clé d'écriture au navigateur. Les mutations pas
 - Content Security Policy alignée avec l'URL d'API publique
 - rate limiting avec prise en charge optionnelle des proxys de confiance
 
+#### Politique des lectures (GET) vs écritures
+
+| Flux | Authentification FastAPI | Remarque |
+| ---- | ------------------------- | -------- |
+| `POST`, `PUT`, `PATCH`, `DELETE` | Oui — en-tête `X-API-Key` | Le navigateur n'envoie pas la clé en direct : passage par `/api/proxy/...` (serveur Next.js). |
+| `GET`, `HEAD` | Non dans ce dépôt | Choix adapté au **développement local** et à un réseau de confiance. |
+
+**Déploiement hors localhost** : avant toute exposition publique de l'URL du backend, définir une stratégie explicite : API uniquement sur réseau privé / VPN, authentification étendue aux GET (clé, JWT, OAuth), ou reverse proxy avec filtrage (IP, mTLS). Le détail des options et le statu quo sont documentés dans [**`docs/ADR-001-politique-lecture-api.md`**](docs/ADR-001-politique-lecture-api.md).
+
 ## Installation locale
 
 ### Prérequis
 
-- Python 3.12+
+- Python **3.12+** (la CI GitHub Actions utilise **3.12** ; un poste en **3.13** ou ultérieur fonctionne en général si `pip install -r requirements.txt` réussit — en cas d’écart, aligner le venv sur 3.12).
 - Node.js 20+
 - Git
 
-### Backend
+### Hooks Git (pre-commit)
+
+Optionnel : formatage (**Black**, **Ruff**, **Prettier**) et lint (**Next.js / ESLint**) avant chaque commit. Configuration : [`.pre-commit-config.yaml`](.pre-commit-config.yaml).
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Vérifier une fois sur tout le dépôt :
+
+```bash
+pre-commit run --all-files
+```
+
+Nécessite les dépendances **backend** (`pip install -r requirements.txt`) et **frontend** (`pnpm install` ou `npm install` dans `frontend/`) pour que les hooks puissent s’exécuter.
+
+### Installation — backend
 
 ```bash
 cd backend
@@ -148,7 +195,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Frontend
+### Installation — frontend
 
 ```bash
 cd frontend
@@ -157,7 +204,7 @@ npx --yes pnpm install
 
 ## Configuration
 
-### Backend
+### Configuration — backend
 
 Créer `backend/.env` à partir de `backend/.env.example`.
 
@@ -169,7 +216,9 @@ TRUST_PROXY_HEADERS=false
 TRUSTED_PROXY_IPS=127.0.0.1,::1,localhost
 ```
 
-### Frontend
+**Montée en charge** : SQLite convient au développement et à une charge faible. Pour plusieurs utilisateurs simultanés ou déploiement multi-instance, prévoir **PostgreSQL** (`DATABASE_URL`) et le **pooling** des connexions — arbitrage et versions dans [`STACK_REFERENCE.md`](STACK_REFERENCE.md).
+
+### Configuration — frontend
 
 Créer `frontend/.env.local` à partir de `frontend/.env.example`.
 
@@ -195,7 +244,7 @@ cd backend
 uvicorn main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
-API disponible sur `http://127.0.0.1:8001`  
+API disponible sur `http://127.0.0.1:8001`
 Documentation Swagger : `http://127.0.0.1:8001/docs`
 
 ### 3. Lancer le frontend
@@ -207,6 +256,16 @@ npx --yes pnpm dev --port 3000
 
 Application disponible sur `http://localhost:3000`
 
+### Dépannage local (API injoignable, 503 sur `/api/proxy/...`)
+
+| Symptôme | Variables à vérifier | Action |
+| -------- | -------------------- | ------ |
+| **503** ou délais ~10–12 s sur les appels données | `frontend/.env.local` : `API_BASE_URL` (et `NEXT_PUBLIC_API_BASE_URL`) doivent pointer vers l’URL où **uvicorn** écoute (ex. `http://127.0.0.1:8001`). | Redémarrer `pnpm dev` après modification du `.env.local`. |
+| Backend qui refuse de démarrer | `backend/.env` : **`WRITE_API_KEY`** obligatoire (voir `core/config.py`). | Définir une valeur non vide ; même valeur côté frontend pour le proxy si vous testez des écritures. |
+| Écritures 401 via le navigateur | `WRITE_API_KEY` dans `frontend/.env.local` alignée sur le backend. | Pas de clé dans le bundle client pour les GET ; le proxy lit la clé côté serveur Next. |
+
+**Rappel** : l’API FastAPI doit être lancée (`uvicorn` sur le même host/port que `API_BASE_URL`) avant d’utiliser l’interface.
+
 Alternative Windows avec libération automatique du port 3000 :
 
 ```bash
@@ -216,14 +275,16 @@ make dev3000
 
 ## Tests et validation
 
-### Backend
+Avant une **fusion (merge)** sur la branche principale, il est recommandé d’aligner la CI en exécutant localement **`pytest`** (backend) et **`vitest`** (frontend) — voir les commandes ci-dessous. En cas d’échec lié à l’API, voir la section **Dépannage local** (plus bas dans ce fichier).
+
+### Tests — backend
 
 ```bash
 cd backend
 pytest -v
 ```
 
-Le backend est couvert par 25 tests, notamment sur :
+Le backend est couvert par une suite **pytest** (voir CI), notamment sur :
 
 - CRUD tâches et projets
 - dépendances entre tâches
@@ -231,20 +292,14 @@ Le backend est couvert par 25 tests, notamment sur :
 - détachement de `parent_task_id`
 - pagination
 
-### Frontend
+### Tests — frontend
 
 ```bash
 cd frontend
 npx --yes pnpm test
 ```
 
-Le frontend est couvert par 26 tests, notamment sur :
-
-- proxy d'écriture
-- client API
-- hook `useProjects`
-- helpers pagination
-- helpers dépendances Kanban
+Le frontend est couvert par une suite Vitest (proxy, client API, hook `useProjects`, pagination, dépendances, calendrier, etc.).
 
 ### Build de production
 
@@ -255,10 +310,11 @@ npx --yes pnpm build
 
 ## CI/CD
 
-Deux workflows GitHub Actions sont inclus :
+Trois workflows GitHub Actions sont inclus :
 
 - `backend-tests.yml` : installation Python puis exécution de `pytest`
 - `frontend-build.yml` : installation Node/pnpm puis build Next.js avec lint et vérifications
+- `repo-guards.yml` : exécution de [`scripts/check-repo-guards.sh`](scripts/check-repo-guards.sh) (motifs à haut risque type clé PEM ou préfixe `AKIA`, sans dépendance externe)
 
 ## Migrations de base de données
 
@@ -300,6 +356,8 @@ alembic current
 - `DELETE /taches/{tache_id}`
 
 Les routes d'écriture nécessitent l'en-tête `X-API-Key` côté backend. Dans le navigateur, elles passent par le proxy Next.js.
+
+Les **lectures** (`GET`) ne sont pas protégées par clé API dans cette version — voir la sous-section *Politique des lectures (GET) vs écritures* plus haut et l'[ADR-001](docs/ADR-001-politique-lecture-api.md).
 
 ## Résumé
 

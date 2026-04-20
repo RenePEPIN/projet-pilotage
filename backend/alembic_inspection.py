@@ -1,5 +1,6 @@
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 
 def _get_inspector() -> sa.Inspector:

@@ -6,7 +6,6 @@ from typing import Any
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-
 _BACKEND_DIR = Path(__file__).resolve().parent
 _DEFAULT_SQLITE_URL = "sqlite:///./data/api_tache.db"
 
@@ -60,6 +59,7 @@ engine = create_engine(
 )
 
 if is_sqlite:
+
     def _enable_sqlite_foreign_keys(dbapi_connection: Any, _connection_record: Any) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
