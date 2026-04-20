@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createTask, getTasks, getTasksByProjectId } from "./task-api";
+import {
+  createTask,
+  getAllTasksByProjectId,
+  getTasks,
+  getTasksByProjectId,
+} from "./task-api";
 
 describe("task-api", () => {
   beforeEach(() => {
@@ -132,5 +137,78 @@ describe("task-api", () => {
     const tasks = await getTasks();
     expect(Array.isArray(tasks)).toBe(true);
     expect(tasks[0].etat).toBe("enCours");
+  });
+
+  // QW-50: Test getAllTasksByProjectId pagination across multiple pages
+  it("loads all tasks across multiple pages (QW-50)", async () => {
+    // Mock first page (page 1/2 with truncated=true)
+    global.fetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          taches: [
+            {
+              id: 1,
+              titre: "Task 1",
+              description: "",
+              etat: "A faire",
+              section: "backend",
+              project_id: "test-project",
+              parent_task_id: null,
+              due_date: null,
+            },
+          ],
+          limit: 1,
+          offset: 0,
+          count: 2,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    // Mock second page (page 2/2 with truncated=false)
+    global.fetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          taches: [
+            {
+              id: 2,
+              titre: "Task 2",
+              description: "",
+              etat: "En cours",
+              section: "frontend",
+              project_id: "test-project",
+              parent_task_id: null,
+              due_date: null,
+            },
+          ],
+          limit: 1,
+          offset: 1,
+          count: 2,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const allTasks = await getAllTasksByProjectId("test-project");
+
+    expect(allTasks).toHaveLength(2);
+    expect(allTasks[0].titre).toBe("Task 1");
+    expect(allTasks[1].titre).toBe("Task 2");
+    // Verify two fetch calls were made (pagination)
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  // QW-51: Test error propagation through getAllTasksByProjectId
+  it("propagates API error message from getAllTasksByProjectId (QW-51)", async () => {
+    global.fetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "Projet non trouve" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(getAllTasksByProjectId("invalid-project")).rejects.toThrow(
+      "Projet non trouve",
+    );
   });
 });
