@@ -1,148 +1,137 @@
-# App de pilotage — Todo / Task Manager
+# Projet Pilotage
 
-Application fullstack de gestion de tâches organisées par projets, avec une vue Kanban, des dépendances entre tâches et un calendrier intégré.
+Application fullstack de gestion de projets et de tâches, conçue comme un projet de portfolio orienté qualité logicielle.
 
----
+Le dépôt met en avant une architecture claire, un backend FastAPI structuré, un frontend Next.js moderne, une base versionnée avec Alembic, des tests automatisés et une approche explicite de la sécurité sur les routes d'écriture.
 
-## Sommaire
+## Pourquoi ce projet est intéressant pour un recruteur
 
-- [Architecture](#architecture)
-- [Stack technique](#stack-technique)
-- [Structure du dépôt](#structure-du-dépôt)
-- [Prérequis](#prérequis)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Lancer le projet en local](#lancer-le-projet-en-local)
-- [Tests](#tests)
-- [CI/CD](#cicd)
-- [Migrations de base de données](#migrations-de-base-de-données)
-- [API — Endpoints principaux](#api--endpoints-principaux)
-- [Variables d'environnement](#variables-denvironnement)
-- [Sécurité](#sécurité)
+Ce projet ne montre pas seulement une interface ou une API isolée. Il démontre une capacité à livrer un produit fullstack cohérent de bout en bout :
 
----
+- conception d'une architecture modulaire
+- modélisation métier et validation des données
+- gestion des migrations de base de données
+- sécurisation des mutations côté serveur
+- tests backend et frontend
+- build de production et intégration continue
 
-## Architecture
+Autrement dit, il reflète une approche d'ingénierie complète, pas seulement une démo visuelle.
 
-```
-┌─────────────────────────────────────┐
-│         Navigateur (client)         │
-│   Next.js App Router — React 18     │
-│   Lecture directe API (GET)         │
-│   Écriture via proxy sécurisé       │
-└────────────┬─────────────┬──────────┘
-             │ GET          │ POST/PUT/PATCH/DELETE
-             │              ▼
-             │  ┌───────────────────────────┐
-             │  │  /api/proxy/[...path]     │
-             │  │  Route Next.js Server     │
-             │  │  • Validation HMAC key    │
-             │  │  • Sanitisation du chemin │
-             │  │  • Validation Content-Type│
-             │  └────────────┬──────────────┘
-             │               │
-             ▼               ▼
-┌─────────────────────────────────────┐
-│         FastAPI (Python)            │
-│   SQLAlchemy + SQLite / PostgreSQL  │
-│   Alembic — migrations versionnées  │
-│   SlowAPI — rate limiting           │
-└─────────────────────────────────────┘
-```
+## Ce que l'application permet
 
-Le frontend ne transmet jamais la `WRITE_API_KEY` au navigateur. Toutes les mutations passent par un proxy Next.js côté serveur qui valide la clé par comparaison HMAC en temps constant.
+- gérer plusieurs projets
+- créer, modifier et supprimer des tâches
+- organiser les tâches dans une vue Kanban par statut
+- définir des dépendances entre tâches
+- visualiser les échéances dans un calendrier
+- paginer les résultats côté API
+- bénéficier d'une interface qui gère les états de chargement et d'erreur
 
----
+## Compétences démontrées
+
+- séparation claire des responsabilités entre UI, logique métier, accès aux données et configuration
+- utilisation de FastAPI, SQLAlchemy et Pydantic v2 dans une architecture maintenable
+- mise en place d'un proxy d'écriture Next.js pour protéger les secrets
+- validation métier sur les dépendances et détection de cycles
+- tests automatisés sur les comportements critiques
+- workflows GitHub Actions pour valider le backend et le build frontend
 
 ## Stack technique
 
-| Couche               | Technologie                      | Version |
-| -------------------- | -------------------------------- | ------- |
-| Frontend             | Next.js                          | 14.2.5  |
-| Frontend             | React                            | 18.3.1  |
-| Frontend — tests     | Vitest                           | 4.x     |
-| Frontend — pkg       | pnpm                             | via npx |
-| Backend              | FastAPI                          | 0.136.0 |
-| Backend              | SQLAlchemy                       | 2.0.x   |
-| Backend              | Pydantic                         | v2      |
-| Backend — migrations | Alembic                          | 1.18.x  |
-| Backend — rate limit | SlowAPI                          | 0.1.9   |
-| Backend — tests      | pytest                           | 9.x     |
-| Base de données      | SQLite (dev) / PostgreSQL (prod) | —       |
-| Runtime Python       | Python                           | ≥ 3.12  |
-| Runtime Node         | Node.js                          | ≥ 20    |
+| Couche          | Technologies                                       |
+| --------------- | -------------------------------------------------- |
+| Frontend        | Next.js 14, React 18, App Router                   |
+| Frontend tests  | Vitest                                             |
+| Backend         | FastAPI, SQLAlchemy, Pydantic v2                   |
+| Base de données | SQLite en local, PostgreSQL compatible             |
+| Migrations      | Alembic                                            |
+| Sécurité        | Proxy Next.js, validation JSON, CORS, CSP, SlowAPI |
+| CI              | GitHub Actions                                     |
 
----
+## Architecture
+
+```text
+Navigateur
+  |
+  | GET directs
+  v
+Frontend Next.js
+  |
+  | POST / PUT / DELETE via proxy serveur
+  v
+/api/proxy/[...path]
+  |
+  v
+API FastAPI
+  |
+  v
+SQLAlchemy + SQLite / PostgreSQL
+```
+
+Le frontend n'expose jamais la clé d'écriture au navigateur. Les mutations passent par une route serveur Next.js qui valide la requête avant transmission au backend.
 
 ## Structure du dépôt
 
-```
+```text
 .
 ├── backend/
-│   ├── alembic/                  # Migrations Alembic versionnées
-│   │   └── versions/
-│   │       ├── 0001_create_taches_table.py
-│   │       ├── 0002_projects_and_task_scope.py
-│   │       ├── 0003_add_parent_task_dependency.py
-│   │       ├── 0004_add_due_date_to_taches.py
-│   │       └── 0005_constrain_tache_etat_enum.py
-│   ├── alembic_inspection.py     # Helpers DRY pour les migrations
-│   ├── app_factory.py            # Factory FastAPI (middlewares, routeurs)
+│   ├── alembic/
 │   ├── core/
-│   │   ├── config.py             # Settings (dotenv)
-│   │   ├── rate_limit.py         # Limiter + dérivation IP client
-│   │   └── task_status.py        # Enum Etat partagé (modèle + schéma)
-│   ├── crud/                     # Couche accès données
-│   ├── database.py               # Moteur SQLAlchemy, session, ping
-│   ├── dependencies.py           # Dépendances FastAPI (auth, session)
-│   ├── main.py                   # Point d'entrée uvicorn
-│   ├── models/                   # Modèles ORM
-│   ├── requirements.txt
+│   ├── crud/
+│   ├── models/
 │   ├── routers/
-│   │   ├── health.py             # GET /health
-│   │   ├── projects.py           # CRUD projets
-│   │   └── taches.py             # CRUD tâches
-│   ├── schemas/                  # Schémas Pydantic (request / response)
-│   ├── scripts/
-│   │   └── start-api.ps1         # Script de démarrage Windows
-│   └── tests/
-│       └── test_api.py           # Suite pytest — 25 tests
-│
+│   ├── schemas/
+│   ├── tests/
+│   ├── app_factory.py
+│   ├── database.py
+│   └── main.py
 ├── frontend/
 │   ├── app/
 │   │   ├── api/proxy/[...path]/
-│   │   │   ├── route.js          # Proxy sécurisé écriture
-│   │   │   └── route.test.js
-│   │   ├── components/           # Composants React (Kanban, formulaires…)
-│   │   ├── hooks/                # use-projects
-│   │   ├── lib/                  # Helpers métier et API client
-│   │   ├── projects/             # Pages projets
-│   │   ├── detail/               # Page détail / édition tâche
-│   │   └── page.js               # Page d'accueil
-│   ├── next.config.mjs           # Config Next (CSP, headers)
-│   ├── Makefile                  # Raccourcis dev
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── lib/
+│   │   ├── detail/
+│   │   └── projects/
+│   ├── next.config.mjs
+│   ├── Makefile
 │   └── package.json
-│
-├── .github/
-│   └── workflows/
-│       ├── backend-tests.yml     # CI pytest
-│       └── frontend-build.yml    # CI build + lint Next.js
-│
-└── README.md
+└── .github/workflows/
 ```
 
----
+## Focus technique
 
-## Prérequis
+### Backend
 
-- **Python ≥ 3.12** avec `pip`
-- **Node.js ≥ 20** avec `npx`
-- **pnpm** (installé automatiquement via `npx --yes pnpm`)
-- **Git**
+- `app_factory.py` centralise l'assemblage de l'application.
+- `crud/`, `routers/`, `schemas/` et `core/` sont séparés proprement.
+- les dépendances entre tâches sont validées avec contrôle de cohérence projet et détection de cycle.
+- la pagination est gérée directement au niveau API.
+- les migrations Alembic sont maintenues avec des helpers DRY d'inspection.
 
----
+### Frontend
 
-## Installation
+- App Router Next.js avec pages projets, détail et proxy API.
+- hook `useProjects` dédié au chargement et au fallback des projets.
+- helpers dédiés pour les statuts, la pagination, les dépendances et les appels API.
+- vue Kanban avec détection visuelle des tâches bloquées.
+
+### Sécurité
+
+- proxy d'écriture côté serveur
+- validation stricte du `Content-Type: application/json`
+- sanitisation des segments de chemin via `SAFE_PATH_SEGMENT_RE`
+- comparaison de clé API en temps constant côté backend
+- Content Security Policy alignée avec l'URL d'API publique
+- rate limiting avec prise en charge optionnelle des proxys de confiance
+
+## Installation locale
+
+### Prérequis
+
+- Python 3.12+
+- Node.js 20+
+- Git
 
 ### Backend
 
@@ -152,6 +141,7 @@ python -m venv .venv
 
 # Windows
 .venv\Scripts\activate
+
 # Linux / macOS
 source .venv/bin/activate
 
@@ -165,96 +155,81 @@ cd frontend
 npx --yes pnpm install
 ```
 
----
-
 ## Configuration
 
-### Backend — `backend/.env`
+### Backend
 
-Copier le fichier d'exemple :
+Créer `backend/.env` à partir de `backend/.env.example`.
 
-```bash
-cp backend/.env.example backend/.env
+```env
+DATABASE_URL=sqlite:///./data/api_tache.db
+WRITE_API_KEY=changez-moi-en-production
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+TRUST_PROXY_HEADERS=false
+TRUSTED_PROXY_IPS=127.0.0.1,::1,localhost
 ```
 
-| Variable              | Défaut                          | Description                            |
-| --------------------- | ------------------------------- | -------------------------------------- |
-| `DATABASE_URL`        | `sqlite:///./data/api_tache.db` | URL SQLAlchemy (SQLite ou PostgreSQL)  |
-| `WRITE_API_KEY`       | `changez-moi-en-production`     | Clé secrète pour les routes d'écriture |
-| `ALLOWED_ORIGINS`     | `http://localhost:3000`         | Origines CORS autorisées (virgules)    |
-| `TRUST_PROXY_HEADERS` | `false`                         | Lire `X-Forwarded-For` en production   |
-| `TRUSTED_PROXY_IPS`   | `127.0.0.1,::1`                 | IPs proxy de confiance                 |
+### Frontend
 
-### Frontend — `frontend/.env.local`
+Créer `frontend/.env.local` à partir de `frontend/.env.example`.
 
-Copier le fichier d'exemple :
-
-```bash
-cp frontend/.env.example frontend/.env.local
+```env
+API_BASE_URL=http://127.0.0.1:8001
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
+WRITE_API_KEY=changez-moi-en-production
 ```
 
-| Variable                   | Description                                               |
-| -------------------------- | --------------------------------------------------------- |
-| `API_BASE_URL`             | URL interne backend (côté serveur Next.js)                |
-| `NEXT_PUBLIC_API_BASE_URL` | URL backend exposée au navigateur + utilisée par la CSP   |
-| `WRITE_API_KEY`            | Doit correspondre exactement à `WRITE_API_KEY` du backend |
+## Démarrage du projet
 
-> ⚠️ `WRITE_API_KEY` n'est jamais envoyée au navigateur — elle est lue uniquement dans la route proxy `/api/proxy/[...path]` côté serveur.
-
----
-
-## Lancer le projet en local
-
-### 1. Initialiser la base de données
+### 1. Initialiser la base
 
 ```bash
 cd backend
 alembic upgrade head
 ```
 
-### 2. Démarrer le backend
+### 2. Lancer l'API
 
 ```bash
-# Dans backend/ avec le venv activé
+cd backend
 uvicorn main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
-L'API est disponible sur `http://127.0.0.1:8001`.  
+API disponible sur `http://127.0.0.1:8001`  
 Documentation Swagger : `http://127.0.0.1:8001/docs`
 
-### 3. Démarrer le frontend
+### 3. Lancer le frontend
 
 ```bash
-# Option A — via Makefile (libère le port 3000 si occupé)
-cd frontend
-make dev3000
-
-# Option B — directement
 cd frontend
 npx --yes pnpm dev --port 3000
 ```
 
-L'application est disponible sur `http://localhost:3000`.
+Application disponible sur `http://localhost:3000`
 
----
+Alternative Windows avec libération automatique du port 3000 :
 
-## Tests
+```bash
+cd frontend
+make dev3000
+```
+
+## Tests et validation
 
 ### Backend
 
 ```bash
 cd backend
-# Avec le venv activé
 pytest -v
 ```
 
-25 tests couvrant les CRUD tâches, projets, dépendances, pagination et régressions de nullité.
+Le backend est couvert par 25 tests, notamment sur :
 
-Pour les tests utilisant une base SQLite dédiée :
-
-```bash
-ALLOW_TEST_DATABASE=1 pytest -v
-```
+- CRUD tâches et projets
+- dépendances entre tâches
+- validation des erreurs métier
+- détachement de `parent_task_id`
+- pagination
 
 ### Frontend
 
@@ -263,111 +238,69 @@ cd frontend
 npx --yes pnpm test
 ```
 
-26 tests Vitest couvrant :
+Le frontend est couvert par 26 tests, notamment sur :
 
-- Proxy (400, 405, 415, succès)
-- Client API (retry, timeout, gestion d'erreurs)
-- Hook `useProjects` (réponse vide, liste API, defaults)
-- Helpers Kanban (dépendances, tri topologique)
-- Helpers pagination et troncature
+- proxy d'écriture
+- client API
+- hook `useProjects`
+- helpers pagination
+- helpers dépendances Kanban
 
----
+### Build de production
+
+```bash
+cd frontend
+npx --yes pnpm build
+```
 
 ## CI/CD
 
-Deux workflows GitHub Actions s'exécutent sur chaque push et pull request vers `main` / `master` :
+Deux workflows GitHub Actions sont inclus :
 
-| Workflow       | Fichier                                | Ce qu'il fait                                                    |
-| -------------- | -------------------------------------- | ---------------------------------------------------------------- |
-| Backend Tests  | `.github/workflows/backend-tests.yml`  | Installe deps Python, exécute `pytest`                           |
-| Frontend Build | `.github/workflows/frontend-build.yml` | Installe deps Node, exécute `next build` avec lint et type-check |
-
----
+- `backend-tests.yml` : installation Python puis exécution de `pytest`
+- `frontend-build.yml` : installation Node/pnpm puis build Next.js avec lint et vérifications
 
 ## Migrations de base de données
 
-Les migrations sont versionnées dans `backend/alembic/versions/` :
+Révisions principales :
 
-| Révision | Description                            |
-| -------- | -------------------------------------- |
-| `0001`   | Création de la table `taches`          |
-| `0002`   | Ajout des projets et portée des tâches |
-| `0003`   | Dépendance parent (`parent_task_id`)   |
-| `0004`   | Ajout de `due_date`                    |
-| `0005`   | Contrainte enum sur `etat`             |
+- `0001` : création de `taches`
+- `0002` : ajout des projets et du scope projet
+- `0003` : dépendance parent `parent_task_id`
+- `0004` : ajout de `due_date`
+- `0005` : contrainte enum sur `etat`
+
+Commandes utiles :
 
 ```bash
-# Appliquer toutes les migrations
 alembic upgrade head
-
-# Revenir en arrière (smoke test)
 alembic downgrade base
-
-# Voir l'état actuel
 alembic current
 ```
 
----
+## API principale
 
-## API — Endpoints principaux
+### Health
 
-### Santé
+- `GET /health/db`
 
-| Méthode | Route     | Description                          |
-| ------- | --------- | ------------------------------------ |
-| `GET`   | `/health` | Vérifie que l'API est opérationnelle |
+### Projects
 
-### Projets
+- `GET /projects/`
+- `GET /projects/defaults`
+- `POST /projects/`
+- `PATCH /projects/{project_id}`
 
-| Méthode  | Route                | Description                     |
-| -------- | -------------------- | ------------------------------- |
-| `GET`    | `/projects/`         | Liste tous les projets          |
-| `POST`   | `/projects/`         | Crée un projet                  |
-| `PATCH`  | `/projects/{id}`     | Renomme un projet               |
-| `DELETE` | `/projects/{id}`     | Supprime un projet              |
-| `GET`    | `/projects/defaults` | Retourne les projets par défaut |
+### Tasks
 
-### Tâches
+- `GET /taches/`
+- `GET /taches/{tache_id}`
+- `POST /taches/`
+- `PUT /taches/{tache_id}`
+- `DELETE /taches/{tache_id}`
 
-| Méthode  | Route          | Description                                                 |
-| -------- | -------------- | ----------------------------------------------------------- |
-| `GET`    | `/taches/`     | Liste les tâches (filtres: `project_id`, `limit`, `offset`) |
-| `POST`   | `/taches/`     | Crée une tâche                                              |
-| `GET`    | `/taches/{id}` | Récupère une tâche                                          |
-| `PUT`    | `/taches/{id}` | Met à jour une tâche (remplace)                             |
-| `PATCH`  | `/taches/{id}` | Met à jour partiellement une tâche                          |
-| `DELETE` | `/taches/{id}` | Supprime une tâche                                          |
+Les routes d'écriture nécessitent l'en-tête `X-API-Key` côté backend. Dans le navigateur, elles passent par le proxy Next.js.
 
-Les routes `POST`, `PUT`, `PATCH`, `DELETE` nécessitent l'en-tête `X-Write-Api-Key: <WRITE_API_KEY>`.
+## Résumé
 
----
-
-## Variables d'environnement
-
-Récapitulatif complet :
-
-```
-# backend/.env
-DATABASE_URL=sqlite:///./data/api_tache.db
-WRITE_API_KEY=changez-moi-en-production
-ALLOWED_ORIGINS=http://localhost:3000
-TRUST_PROXY_HEADERS=false
-TRUSTED_PROXY_IPS=127.0.0.1,::1
-
-# frontend/.env.local
-API_BASE_URL=http://127.0.0.1:8001
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
-WRITE_API_KEY=changez-moi-en-production
-```
-
----
-
-## Sécurité
-
-- **Proxy sécurisé** : toutes les mutations transitent par `/api/proxy/[...path]` côté serveur Next.js. La clé n'est jamais exposée au navigateur.
-- **Validation HMAC** : comparaison de la clé en temps constant (`timingSafeEqual`) pour se prémunir contre les attaques temporelles.
-- **Sanitisation de chemin** : chaque segment de l'URL proxy est validé via une expression régulière stricte (`SAFE_PATH_SEGMENT_RE`) avant d'être transmis au backend.
-- **Validation Content-Type** : les routes `POST`, `PUT`, `PATCH` exigent `Content-Type: application/json`.
-- **CORS** : liste blanche d'origines configurable via `ALLOWED_ORIGINS`.
-- **CSP** : en-têtes Content-Security-Policy générés dans `next.config.mjs`, alignés sur `NEXT_PUBLIC_API_BASE_URL`.
-- **Rate limiting** : SlowAPI avec dérivation d'IP cliente sécurisée (prise en compte optionnelle des headers proxy).
+Projet Pilotage est un bon exemple de projet portfolio seniorisable : il montre à la fois la capacité à construire un produit utile, à structurer une base de code proprement, à sécuriser les flux sensibles et à livrer avec des tests et une CI réalistes.

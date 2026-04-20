@@ -263,7 +263,9 @@ export default function HomeContent({ initialProjectId }) {
     });
   }, [categoryFilter, statusFilter, tasks]);
 
-  const tacheGuide = tasks.find((tache) => tache.id === guideId);
+  const tacheGuide = tasks.find(
+    (tache) => String(tache.id) === String(guideId),
+  );
 
   // Group tasks by status for Kanban board layout
   const groupedTasksByStatus = useMemo(() => {
