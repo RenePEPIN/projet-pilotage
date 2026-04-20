@@ -85,6 +85,30 @@ export async function getTasksByProjectId(
   return includeMeta ? normalized : normalized.tasks;
 }
 
+export async function getAllTasksByProjectId(projectId) {
+  /**
+   * QW-50: Load all tasks for a project across all pages.
+   * Useful for parent task selection in forms to avoid incomplete lists.
+   */
+  const allTasks = [];
+  let offset = 0;
+  const limit = DEFAULT_LIMIT;
+  let hasMore = true;
+
+  while (hasMore) {
+    const normalized = await getTasksByProjectId(projectId, {
+      limit,
+      offset,
+      includeMeta: true,
+    });
+    allTasks.push(...normalized.tasks);
+    hasMore = normalized.pagination.truncated;
+    offset += limit;
+  }
+
+  return allTasks;
+}
+
 export async function getTaskById(taskId) {
   const payload = await request(`/taches/${taskId}`);
   return normalizeFromApi(payload);

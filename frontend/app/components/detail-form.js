@@ -6,6 +6,7 @@ import { useEffect, useMemo, useReducer, useRef } from "react";
 import { useProjects } from "../hooks/use-projects";
 import {
   createTask,
+  getAllTasksByProjectId,
   getTaskById,
   getTasksByProjectId,
   updateTask,
@@ -190,12 +191,17 @@ export default function DetailForm({ searchParams }) {
           projectIdFromTaskLoadRef.current = task.projectId;
         }
         dispatch({ type: "LOAD_TASK", task });
-      } catch {
+      } catch (error) {
         if (isMounted) {
+          // QW-51: Propagate actual error message from API
+          const errorMsg =
+            error instanceof Error
+              ? error.message
+              : "Impossible de charger la tache depuis l'API.";
           dispatch({
             type: "SET_FIELD",
             field: "errorMessage",
-            value: "Impossible de charger la tache depuis l'API.",
+            value: errorMsg,
           });
           dispatch({ type: "SET_FIELD", field: "isLoadingTask", value: false });
         }
@@ -224,15 +230,26 @@ export default function DetailForm({ searchParams }) {
       dispatch({ type: "SET_FIELD", field: "parentTaskId", value: null });
     }
 
-    getTasksByProjectId(projectId)
+    // QW-50: Load all tasks across pages for parent selection
+    getAllTasksByProjectId(projectId)
       .then((tasks) => {
         if (isMounted) {
           dispatch({ type: "SET_FIELD", field: "projectTasks", value: tasks });
           projectIdFromTaskLoadRef.current = projectId;
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (isMounted) {
+          // QW-51: Propagate actual error message from API
+          const errorMsg =
+            error instanceof Error
+              ? error.message
+              : "Impossible de charger les taches parentes.";
+          dispatch({
+            type: "SET_FIELD",
+            field: "errorMessage",
+            value: errorMsg,
+          });
           dispatch({ type: "SET_FIELD", field: "projectTasks", value: [] });
           projectIdFromTaskLoadRef.current = projectId;
         }

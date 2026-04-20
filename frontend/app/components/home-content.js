@@ -145,9 +145,14 @@ export default function HomeContent({ initialProjectId }) {
           setTasks(nextTasks.tasks);
           setTaskPagination(nextTasks.pagination);
         }
-      } catch {
+      } catch (error) {
         if (isMounted) {
-          setTaskError("Impossible de charger les taches depuis l'API.");
+          // QW-51: Propagate actual error message from API
+          const errorMsg =
+            error instanceof Error
+              ? error.message
+              : "Impossible de charger les taches depuis l'API.";
+          setTaskError(errorMsg);
           setTaskPagination((prev) => ({ ...prev, truncated: false }));
         }
       } finally {
