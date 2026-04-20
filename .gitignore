@@ -1,0 +1,21 @@
+# Python
+.venv/
+backend/.venv/
+**/__pycache__/
+**/.pytest_cache/
+
+# Databases
+*.db
+backend/data/*.db
+
+# Backend local secrets
+backend/.env
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
