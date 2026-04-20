@@ -2,7 +2,7 @@
 
 Document de **décision technique figée** pour ce dépôt. Toute nouvelle dépendance ou outillage doit être **répertorié ici** (version ou plage) avant d’être ajouté au code ou à la CI, sauf section marquée **DÉCISION REQUISE**.
 
-Liens : [README](README.md) · [État du projet](STATE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [CONTRIBUTING](CONTRIBUTING.md) · [ADR-001 lectures API](docs/ADR-001-politique-lecture-api.md) · [ADR-002 notes stratégiques](docs/ADR-002-notes-strategiques-api.md) · [ADR-003 recherche serveur (brouillon)](docs/ADR-003-recherche-filtre-serveur.md) · [ADR-004 correlation ID (brouillon)](docs/ADR-004-correlation-id-tracing.md)
+Liens : [README](README.md) · [État du projet](STATE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [CONTRIBUTING](CONTRIBUTING.md) · [ADR-001 lectures API](docs/ADR-001-politique-lecture-api.md) · [ADR-002 notes stratégiques](docs/ADR-002-notes-strategiques-api.md) · [ADR-003 recherche serveur (brouillon)](docs/ADR-003-recherche-filtre-serveur.md) · [ADR-004 correlation ID (brouillon)](docs/ADR-004-correlation-id-tracing.md) · [ADR-005 modèle de menace](docs/ADR-005-modele-menace-api-interne.md)
 
 ---
 
@@ -56,9 +56,9 @@ PostgreSQL est compatible via `DATABASE_URL` ; dimensionner le **pooling** des c
 
 **Appels API navigateur** : same-origin via `/api/proxy/...` ; pas de secret d’écriture dans le bundle client.
 
-**Shell (navigation)** : entrées par défaut dans [`frontend/app/lib/shell-nav-config.js`](frontend/app/lib/shell-nav-config.js) ; surcharge optionnelle **`NEXT_PUBLIC_SHELL_NAV_JSON`** (voir README) pour ne pas figer les liens dashboard par ID de projet dans chaque déploiement.
+**Shell (navigation)** : deux sections titrées — **Navigation** (Backlog, Recherche) puis **Projets** (une entrée par ligne issue de **`GET /projects/`**, puis **Tous les projets**) — voir [`frontend/app/lib/shell-nav-config.js`](frontend/app/lib/shell-nav-config.js). La variable **`NEXT_PUBLIC_SHELL_NAV_JSON`** (optionnelle) remplace **toute** la barre latérale si le JSON est valide (aucune fusion avec l’API) ; utile pour un déploiement où la nav doit être figée sans appel projet.
 
-**Recherche & export (pilotage)** : la **recherche globale** (`/search?q=`) et le filtre backlog `?q=` appliquent un filtre **côté navigateur** sur l’ensemble des tâches chargées (boucle pagination `getAllTasksGlobal`, plafond de pages côté client). L’API `/taches/` n’expose pas de paramètre texte de recherche. **Évolution volumétrie** : prévoir un **filtre / recherche côté API** (paramètres de requête, index SQL full-text ou trigram selon besoin) — [ADR-003 (brouillon)](docs/ADR-003-recherche-filtre-serveur.md) à promouvoir avant code ; voir [ROADMAP](ROADMAP.md). **Export CSV** : génération navigateur (Blob), séparateur `;`, BOM UTF-8 pour Excel.
+**Recherche & export (pilotage)** : la **recherche globale** (`/search?q=`) et le filtre backlog `?q=` appliquent un filtre **côté navigateur** sur l’ensemble des tâches chargées (boucle pagination `getAllTasksGlobal`, plafond de pages côté client ; **curseur** `after_id` / `next_after_id` quand l’API les fournit pour limiter le coût `OFFSET`). L’API `/taches/` n’expose pas de paramètre texte de recherche. **Évolution volumétrie** : prévoir un **filtre / recherche côté API** (paramètres de requête, index SQL full-text ou trigram selon besoin) — [ADR-003 (brouillon)](docs/ADR-003-recherche-filtre-serveur.md) à promouvoir avant code ; voir [ROADMAP](ROADMAP.md). **Export CSV** : génération navigateur (Blob), séparateur `;`, BOM UTF-8 pour Excel.
 
 **Notes stratégiques** : panneau depuis la barre d’actions ; **source de vérité** `GET/PUT /strategic-notes/` (workspace `global`, voir [ADR-002](docs/ADR-002-notes-strategiques-api.md)). **PUT** via proxy Next avec clé serveur ; **copie locale** `localStorage` (`pilotage-strategic-notes`) en secours. Pas d’auth utilisateur fine ni chiffrement au repos.
 
@@ -67,6 +67,10 @@ PostgreSQL est compatible via `DATABASE_URL` ; dimensionner le **pooling** des c
 ## 4. CI / qualité
 
 - **GitHub Actions** : `backend-tests.yml`, `frontend-build.yml`, `repo-guards.yml`
+- **Audits dépendances (sans pin de package applicatif supplémentaire)** :
+  - **Backend** : `pip install pip-audit` puis `pip-audit -r requirements.txt` (job **Backend Tests**).
+  - **Frontend** : `pnpm audit --audit-level=high` après `pnpm install` (job **Frontend Build** ; lockfile `pnpm-lock.yaml`).
+  - Politique menace / périmètre : [ADR-005](docs/ADR-005-modele-menace-api-interne.md).
 - **PR** : gabarit [`.github/pull_request_template.md`](.github/pull_request_template.md) (tests, secrets/config, checklist [ADR-001](docs/ADR-001-politique-lecture-api.md) si infra) ; modèle d’issue [ADR-003](.github/ISSUE_TEMPLATE/adr-003-recherche-serveur.yml).
 - **Garde-fous secrets (sans dépendance)** : [`scripts/check-repo-guards.sh`](scripts/check-repo-guards.sh) — recherche de motifs à haut risque (clés PEM, préfixe `AKIA…`) dans les sources suivies ; exécuté en CI. **Revue humaine** des PR en complément — voir [CONTRIBUTING.md](CONTRIBUTING.md). Un outil dédié type **gitleaks** (action ou binaire) reste **DÉCISION REQUISE** avant d’ajouter une action marketplace ou un package.
 - **pre-commit** : [`.pre-commit-config.yaml`](.pre-commit-config.yaml) (optionnel, local)

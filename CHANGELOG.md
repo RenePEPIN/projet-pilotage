@@ -8,6 +8,13 @@ Liens : [README](README.md) · [ROADMAP](ROADMAP.md) · [État du projet](STATE.
 
 ## [Unreleased]
 
+### Ajouts
+
+- **Shell** : menu latéral en **deux blocs** (titres **Navigation** / **Projets**), séparateur visuel ; projets issus de **`GET /projects/`** + lien **Tous les projets** ; état actif unifié sous `/projects/{id}/…` ; `NEXT_PUBLIC_SHELL_NAV_JSON` remplace la nav **entière** si défini (comportement documenté).
+- **Backend** : détection de cycle parent/enfant par **remontée de chaîne** (requêtes ciblées, sans charge mémoire O(n projet)) ; `GET /taches/` — pagination par **curseur** `after_id` + champs `next_after_id` / `after_id` ; `parent_task_id` avec contrainte **`ge=1`** dans les schémas Pydantic ; helper HTTP [`routers/tache_http.py`](backend/routers/tache_http.py) pour les erreurs de mutation.
+- **Frontend** : `task-api.js` — boucles **plein parcours** utilisent `after_id` quand l’API fournit `next_after_id` ; proxy Next — fonction unique [`forwardToBackend`](frontend/app/api/proxy/[...path]/route.js).
+- **Docs / gouvernance** : [ADR-005 — modèle de menace (API interne / BFF)](docs/ADR-005-modele-menace-api-interne.md) ; **CI** : `pip-audit` (backend), `pnpm audit --audit-level=high` (frontend) — [STACK_REFERENCE.md](STACK_REFERENCE.md) §4.
+
 ### À documenter lors des prochaines livraisons
 
 - Ajouts, corrections, changements breaking, sécurité.

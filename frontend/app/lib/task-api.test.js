@@ -107,6 +107,7 @@ describe("task-api", () => {
       limit: 100,
       offset: 0,
       count: 250,
+      nextAfterId: null,
       truncated: true,
     });
   });
@@ -142,7 +143,7 @@ describe("task-api", () => {
 
   // QW-50: Test getAllTasksByProjectId pagination across multiple pages
   it("loads all tasks across multiple pages (QW-50)", async () => {
-    // Mock first page (page 1/2 with truncated=true)
+    // Mock first page (curseur : next_after_id pour enchaîner sans OFFSET coûteux)
     global.fetch.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -158,15 +159,16 @@ describe("task-api", () => {
               due_date: null,
             },
           ],
-          limit: 1,
+          limit: 100,
           offset: 0,
+          after_id: null,
+          next_after_id: 1,
           count: 2,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
     );
 
-    // Mock second page (page 2/2 with truncated=false)
     global.fetch.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -182,8 +184,10 @@ describe("task-api", () => {
               due_date: null,
             },
           ],
-          limit: 1,
-          offset: 1,
+          limit: 100,
+          offset: null,
+          after_id: 1,
+          next_after_id: null,
           count: 2,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
@@ -197,6 +201,7 @@ describe("task-api", () => {
     expect(allTasks[1].titre).toBe("Task 2");
     // Verify two fetch calls were made (pagination)
     expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(String(global.fetch.mock.calls[1][0])).toContain("after_id=1");
   });
 
   // QW-51: Test error propagation through getAllTasksByProjectId
@@ -231,6 +236,8 @@ describe("task-api", () => {
           ],
           limit: 100,
           offset: 0,
+          after_id: null,
+          next_after_id: null,
           count: 1,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },

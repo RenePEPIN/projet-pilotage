@@ -9,6 +9,7 @@ Vue **opérationnelle** du dépôt : liens, périmètre actuel, points de vigila
 - **README principal** : [README.md](README.md)
 - **Stack figée & décisions techniques** : [STACK_REFERENCE.md](STACK_REFERENCE.md)
 - **Politique lectures API (GET)** : [docs/ADR-001-politique-lecture-api.md](docs/ADR-001-politique-lecture-api.md)
+- **Modèle de menace (périmètre interne)** : [docs/ADR-005-modele-menace-api-interne.md](docs/ADR-005-modele-menace-api-interne.md)
 - **Workflows CI** : [.github/workflows/](.github/workflows/)
 - **Roadmap** : [ROADMAP.md](ROADMAP.md)
 - **Journal des versions** : [CHANGELOG.md](CHANGELOG.md)
@@ -32,7 +33,7 @@ Vue **opérationnelle** du dépôt : liens, périmètre actuel, points de vigila
 - **Contribution / revue PR** : [CONTRIBUTING.md](CONTRIBUTING.md)
 - **ROADMAP** : [ROADMAP.md](ROADMAP.md) — squelette à détailler
 
-Avant merge : exécuter **pytest** et **vitest** localement. Dépannage API : section *Dépannage local* du README.
+Avant merge : exécuter **pytest** et **vitest** localement ; CI exécute en plus **pip-audit** (backend) et **pnpm audit** (frontend). Dépannage API : section *Dépannage local* du README.
 
 ---
 

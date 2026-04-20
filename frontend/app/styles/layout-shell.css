@@ -79,6 +79,13 @@
   gap: 8px;
 }
 
+/* Séparation visuelle entre « Navigation » et « Projets » */
+.shell-nav-group:not(:first-child) {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 .shell-nav-group-title {
   margin: 0;
   font-size: 0.74rem;

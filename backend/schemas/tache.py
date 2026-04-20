@@ -16,7 +16,11 @@ class TacheBase(BaseModel):
         max_length=120,
         pattern=r"^[a-z0-9-]+$",
     )
-    parent_task_id: int | None = Field(default=None, description="ID of parent task (dependency)")
+    parent_task_id: int | None = Field(
+        default=None,
+        ge=1,
+        description="ID of parent task (dependency)",
+    )
     due_date: date | None = Field(
         default=None, description="Optional due date for project planning"
     )
@@ -39,6 +43,7 @@ class TacheUpdate(BaseModel):
     )
     parent_task_id: int | None = Field(
         default=None,
+        ge=1,
         description="ID of parent task (dependency)",
     )
     due_date: date | None = Field(

@@ -593,6 +593,59 @@ def test_list_taches_supports_pagination_and_order() -> None:
     assert taches[0]["id"] < taches[1]["id"]
 
 
+def test_list_taches_supports_cursor_after_id() -> None:
+    reset_database()
+
+    with TestClient(app) as client:
+        for i in range(3):
+            payload = {
+                "titre": f"Tache curseur {i}",
+                "description": "Pagination curseur",
+                "etat": "A faire",
+                "section": "backend",
+                "project_id": "projet-api-principal",
+            }
+            created = client.post("/taches/", json=payload, headers=WRITE_HEADERS)
+            assert created.status_code == 201
+
+        r1 = client.get(
+            "/taches/",
+            params={"project_id": "projet-api-principal", "limit": 2},
+        )
+        assert r1.status_code == 200
+        p1 = r1.json()
+        assert p1["count"] == 3
+        assert len(p1["taches"]) == 2
+        assert p1["next_after_id"] == p1["taches"][-1]["id"]
+        assert p1["offset"] == 0
+
+        last_id = p1["taches"][-1]["id"]
+        r2 = client.get(
+            "/taches/",
+            params={
+                "project_id": "projet-api-principal",
+                "limit": 2,
+                "after_id": last_id,
+            },
+        )
+        assert r2.status_code == 200
+        p2 = r2.json()
+        assert len(p2["taches"]) == 1
+        assert p2["next_after_id"] is None
+        assert p2["taches"][0]["id"] > last_id
+
+
+def test_list_taches_rejects_after_id_with_nonzero_offset() -> None:
+    reset_database()
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/taches/",
+            params={"after_id": 1, "offset": 10, "limit": 10},
+        )
+        assert response.status_code == 400
+
+
 def test_update_rejects_unknown_parent_dependency() -> None:
     reset_database()
     payload = {

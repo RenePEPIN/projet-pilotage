@@ -81,8 +81,10 @@ def validate_no_cycle(
     """
     Validate that adding a parent_task_id to tache_id does not create a cycle.
 
-    Optimized to load all parent mappings in a single DB query instead of
-    querying for each level of the dependency tree.
+    Remonte uniquement la chaîne des parents depuis ``parent_task_id`` (requête
+    par niveau), au lieu de charger toutes les tâches du projet en mémoire.
+    Si ``project_id`` est fourni, on n’emprunte que les liaisons dont la tâche
+    courante appartient à ce projet (équivalent au filtre de l’ancienne carte).
 
     Args:
         db: Database session
@@ -96,24 +98,28 @@ def validate_no_cycle(
     if parent_task_id is None:
         return
 
-    # Build a map of task_id -> parent_task_id for the project (or all if project_id is None)
-    # This avoids O(depth) queries, reducing to O(1) query + O(depth) memory traversal
-    query = db.query(TacheModel.id, TacheModel.parent_task_id)
-    if project_id:
-        query = query.filter(TacheModel.project_id == project_id)
-
-    parent_map = {tache.id: tache.parent_task_id for tache in query.all()}
-
-    # Traverse the dependency chain in memory
     visited: set[int] = set()
-    current_parent_id = parent_task_id
+    current: int | None = parent_task_id
 
-    while current_parent_id is not None:
-        if current_parent_id == tache_id:
+    while current is not None:
+        if current == tache_id:
             raise DependencyValidationError("Cycle de dependances detecte")
 
-        if current_parent_id in visited:
+        if current in visited:
             raise DependencyValidationError("Cycle de dependances detecte")
 
-        visited.add(current_parent_id)
-        current_parent_id = parent_map.get(current_parent_id)
+        visited.add(current)
+
+        row = (
+            db.query(TacheModel.id, TacheModel.parent_task_id, TacheModel.project_id)
+            .filter(TacheModel.id == current)
+            .first()
+        )
+
+        if row is None:
+            break
+
+        if project_id is not None and row.project_id != project_id:
+            break
+
+        current = row.parent_task_id

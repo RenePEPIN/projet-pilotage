@@ -53,8 +53,24 @@ function normalizeTaskCollection(payload) {
     payload?.limit,
     rawTasks.length || DEFAULT_LIMIT,
   );
-  const offset = toPaginationNumber(payload?.offset, 0);
+  const offsetRaw = payload?.offset;
+  const offset =
+    offsetRaw === null || offsetRaw === undefined
+      ? 0
+      : toPaginationNumber(offsetRaw, 0);
   const count = toPaginationNumber(payload?.count, rawTasks.length);
+
+  const raw = payload || {};
+  let nextAfterId = null;
+  let truncated;
+  if ("next_after_id" in raw) {
+    const v = raw.next_after_id;
+    nextAfterId = v !== null && v !== undefined && v !== "" ? Number(v) : null;
+    truncated =
+      nextAfterId !== null && Number.isFinite(nextAfterId) && nextAfterId > 0;
+  } else {
+    truncated = count > offset + tasks.length;
+  }
 
   return {
     tasks,
@@ -62,29 +78,55 @@ function normalizeTaskCollection(payload) {
       limit,
       offset,
       count,
-      truncated: count > offset + tasks.length,
+      nextAfterId,
+      truncated,
     },
   };
+}
+
+function buildTasksQueryString({ limit, offset, afterId, projectId }) {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (afterId != null) {
+    params.set("after_id", String(afterId));
+  } else {
+    params.set("offset", String(offset));
+  }
+  if (projectId != null) {
+    params.set("project_id", projectId);
+  }
+  return params.toString();
 }
 
 export async function getTasks({
   limit = DEFAULT_LIMIT,
   offset = 0,
+  afterId = null,
   includeMeta = false,
 } = {}) {
-  const payload = await request(`/taches/?limit=${limit}&offset=${offset}`);
+  const payload = await request(
+    `/taches/?${buildTasksQueryString({
+      limit,
+      offset,
+      afterId,
+      projectId: null,
+    })}`,
+  );
   const normalized = normalizeTaskCollection(payload);
   return includeMeta ? normalized : normalized.tasks;
 }
 
 export async function getTasksByProjectId(
   projectId,
-  { limit = DEFAULT_LIMIT, offset = 0, includeMeta = false } = {},
+  {
+    limit = DEFAULT_LIMIT,
+    offset = 0,
+    afterId = null,
+    includeMeta = false,
+  } = {},
 ) {
   const payload = await request(
-    `/taches/?project_id=${encodeURIComponent(
-      projectId,
-    )}&limit=${limit}&offset=${offset}`,
+    `/taches/?${buildTasksQueryString({ limit, offset, afterId, projectId })}`,
   );
   const normalized = normalizeTaskCollection(payload);
   return includeMeta ? normalized : normalized.tasks;
@@ -96,19 +138,28 @@ export async function getAllTasksByProjectId(projectId) {
    * Useful for parent task selection in forms to avoid incomplete lists.
    */
   const allTasks = [];
+  let afterId = null;
   let offset = 0;
-  const limit = DEFAULT_LIMIT;
-  let hasMore = true;
+  let pages = 0;
 
-  while (hasMore) {
+  while (pages < MAX_TASK_FETCH_PAGES) {
+    pages += 1;
+    const useCursor = afterId != null;
     const normalized = await getTasksByProjectId(projectId, {
-      limit,
-      offset,
+      limit: DEFAULT_LIMIT,
+      ...(useCursor ? { afterId } : { offset }),
       includeMeta: true,
     });
     allTasks.push(...normalized.tasks);
-    hasMore = normalized.pagination.truncated;
-    offset += limit;
+    const { nextAfterId, truncated } = normalized.pagination;
+    if (nextAfterId != null && Number.isFinite(nextAfterId)) {
+      afterId = nextAfterId;
+      continue;
+    }
+    if (!truncated) {
+      break;
+    }
+    offset += DEFAULT_LIMIT;
   }
 
   return allTasks;
@@ -120,21 +171,31 @@ export async function getAllTasksByProjectId(projectId) {
  */
 export async function getAllTasksGlobal() {
   const allTasks = [];
+  let afterId = null;
   let offset = 0;
-  const limit = DEFAULT_LIMIT;
-  let hasMore = true;
   let pages = 0;
+  let hasMore = true;
 
   while (hasMore && pages < MAX_TASK_FETCH_PAGES) {
     pages += 1;
+    const useCursor = afterId != null;
     const normalized = await getTasks({
-      limit,
-      offset,
+      limit: DEFAULT_LIMIT,
+      ...(useCursor ? { afterId } : { offset }),
       includeMeta: true,
     });
     allTasks.push(...normalized.tasks);
-    hasMore = normalized.pagination.truncated;
-    offset += limit;
+    const { nextAfterId, truncated } = normalized.pagination;
+    if (nextAfterId != null && Number.isFinite(nextAfterId)) {
+      afterId = nextAfterId;
+      hasMore = true;
+      continue;
+    }
+    hasMore = truncated;
+    if (!hasMore) {
+      break;
+    }
+    offset += DEFAULT_LIMIT;
   }
 
   if (hasMore) {

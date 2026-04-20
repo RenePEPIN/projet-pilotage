@@ -55,39 +55,17 @@ function getSearchParamsString(request) {
   }
 }
 
-async function readHandler(request, { params }) {
-  if (!ALLOWED_READ_METHODS.has(request.method)) {
-    return new NextResponse(
-      JSON.stringify({
-        detail: "Methode non autorisee sur le proxy de lecture.",
-      }),
-      {
-        status: 405,
-        headers: {
-          Allow: "GET, HEAD",
-          "Content-Type": "application/json",
-        },
-      },
-    );
-  }
-
-  const pathSegments = sanitizePathSegments((await params).path);
-  if (!pathSegments) {
-    return new NextResponse(
-      JSON.stringify({ detail: "Chemin proxy invalide." }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  }
-
+/**
+ * Appelle le backend et renvoie une NextResponse (corps texte, status, Content-Type).
+ * Gère timeout / erreur réseau → 503 JSON.
+ */
+async function forwardToBackend(request, pathSegments, fetchOptions) {
   const path = "/" + pathSegments.join("/");
   const searchParams = getSearchParamsString(request);
   const url = `${BACKEND_URL}${path}${searchParams ? "?" + searchParams : ""}`;
 
   const init = {
-    method: request.method,
+    ...fetchOptions,
     signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
   };
 
@@ -122,6 +100,38 @@ async function readHandler(request, { params }) {
       "Content-Type":
         backendResponse.headers.get("Content-Type") || "application/json",
     },
+  });
+}
+
+async function readHandler(request, { params }) {
+  if (!ALLOWED_READ_METHODS.has(request.method)) {
+    return new NextResponse(
+      JSON.stringify({
+        detail: "Methode non autorisee sur le proxy de lecture.",
+      }),
+      {
+        status: 405,
+        headers: {
+          Allow: "GET, HEAD",
+          "Content-Type": "application/json",
+        },
+      },
+    );
+  }
+
+  const pathSegments = sanitizePathSegments((await params).path);
+  if (!pathSegments) {
+    return new NextResponse(
+      JSON.stringify({ detail: "Chemin proxy invalide." }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  return forwardToBackend(request, pathSegments, {
+    method: request.method,
   });
 }
 
@@ -185,10 +195,6 @@ async function handler(request, { params }) {
     );
   }
 
-  const path = "/" + pathSegments.join("/");
-  const searchParams = getSearchParamsString(request);
-  const url = `${BACKEND_URL}${path}${searchParams ? "?" + searchParams : ""}`;
-
   const headers = {
     "Content-Type": "application/json",
     "X-API-Key": writeKey,
@@ -197,47 +203,13 @@ async function handler(request, { params }) {
   const init = {
     method: request.method,
     headers,
-    signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     init.body = await request.text();
   }
 
-  let backendResponse;
-  try {
-    backendResponse = await fetch(url, init);
-  } catch (err) {
-    const isTimeout =
-      err instanceof DOMException && err.name === "TimeoutError";
-    return new NextResponse(
-      JSON.stringify({
-        detail: isTimeout
-          ? "Le backend n'a pas répondu dans le délai imparti."
-          : "Impossible de joindre le backend.",
-      }),
-      {
-        status: 503,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  }
-
-  // NextResponse ne supporte pas le status 204 (No Content) — on retourne
-  // un 204 vide pour les réponses sans corps (ex: DELETE).
-  if (backendResponse.status === 204) {
-    return new NextResponse(null, { status: 204 });
-  }
-
-  const body = await backendResponse.text();
-
-  return new NextResponse(body, {
-    status: backendResponse.status,
-    headers: {
-      "Content-Type":
-        backendResponse.headers.get("Content-Type") || "application/json",
-    },
-  });
+  return forwardToBackend(request, pathSegments, init);
 }
 
 export {

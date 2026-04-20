@@ -28,5 +28,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Audit Python dependencies (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+
       - name: Run backend tests
         run: pytest -q

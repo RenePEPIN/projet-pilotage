@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { getShellNavGroups } from "../lib/shell-nav-config";
+import {
+  resolveShellNavGroups,
+  shellNavItemIsActive,
+} from "../lib/shell-nav-config";
+import { useProjectsWithApiDecorated } from "../hooks/use-projects";
 import { toBreadcrumb } from "./app-shell-breadcrumb";
 import { IconChevron, IconMenu } from "./app-shell-icons";
 import StrategicNotesPanel from "./strategic-notes-panel";
@@ -17,8 +21,10 @@ export default function AppShell({ children }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isStrategicNotesOpen, setIsStrategicNotesOpen] = useState(false);
 
+  const { projects } = useProjectsWithApiDecorated();
+
   const breadcrumbs = useMemo(() => toBreadcrumb(pathname), [pathname]);
-  const navGroups = useMemo(() => getShellNavGroups(), []);
+  const navGroups = useMemo(() => resolveShellNavGroups(projects), [projects]);
 
   function handleGlobalSearchSubmit(event) {
     event.preventDefault();
@@ -32,13 +38,7 @@ export default function AppShell({ children }) {
   }
 
   function isItemActive(href) {
-    if (href === "/backlog") {
-      return pathname === "/backlog" || pathname.startsWith("/backlog/");
-    }
-    if (href === "/search") {
-      return pathname === "/search";
-    }
-    return pathname === href || pathname.startsWith(`${href}/`);
+    return shellNavItemIsActive(pathname, href);
   }
 
   return (
@@ -80,8 +80,11 @@ export default function AppShell({ children }) {
         </div>
 
         <nav className="shell-nav" aria-label="Navigation rapide">
-          {navGroups.map((group) => (
-            <section key={group.title} className="shell-nav-group">
+          {navGroups.map((group, groupIndex) => (
+            <section
+              key={`${group.title}-${groupIndex}`}
+              className="shell-nav-group"
+            >
               <p className="shell-nav-group-title">{group.title}</p>
               {group.items.map((item) => {
                 const isActive = isItemActive(item.href);

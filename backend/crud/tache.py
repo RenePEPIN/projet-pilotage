@@ -36,11 +36,16 @@ def list_taches(
     project_id: str | None = None,
     limit: int = 100,
     offset: int = 0,
+    after_id: int | None = None,
 ) -> list[TacheModel]:
     query = db.query(TacheModel)
     if project_id:
         query = query.filter(TacheModel.project_id == project_id)
-    return query.order_by(TacheModel.id.asc()).offset(offset).limit(limit).all()
+    query = query.order_by(TacheModel.id.asc())
+    if after_id is not None:
+        query = query.filter(TacheModel.id > after_id)
+        return query.limit(limit).all()
+    return query.offset(offset).limit(limit).all()
 
 
 def get_tache(db: Session, tache_id: int) -> TacheModel | None:

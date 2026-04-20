@@ -16,6 +16,7 @@ from crud.tache import (
     update_tache,
 )
 from dependencies import get_db, require_write_auth
+from routers.tache_http import raise_from_tache_write_error
 from schemas.tache import Tache, TacheCreate, TacheUpdate
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,8 @@ router = APIRouter()
 @router.get(
     "/taches/",
     summary="Recuperer toutes les taches",
-    description="Toutes les taches de la BDD se retrouvent dans un JSON",
-    response_description="Liste de toutes les taches au format JSON",
+    description="Liste paginée (offset ou curseur ``after_id``). Curseur recommandé pour les grandes tables.",
+    response_description="Liste des taches au format JSON",
 )
 @limiter.limit("100/minute")  # type: ignore[misc]
 def get_all_taches(
@@ -42,9 +43,22 @@ def get_all_taches(
             "avec un OFFSET eleve sur une grande table (scan / tri)."
         ),
     ),
+    after_id: int | None = Query(
+        default=None,
+        ge=1,
+        description=(
+            "Pagination par curseur : retourne les taches avec id strictement superieur. "
+            "Ne pas combiner avec offset≠0."
+        ),
+    ),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    if offset > 1000:
+    if after_id is not None and offset != 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Ne pas combiner after_id avec offset (offset doit etre 0).",
+        )
+    if offset > 1000 and after_id is None:
         logger.warning("Large offset requested: %d (project_id=%s)", offset, project_id)
     total = count_taches(db, project_id=project_id)
     taches = list_taches(
@@ -52,11 +66,15 @@ def get_all_taches(
         project_id=project_id,
         limit=limit,
         offset=offset,
+        after_id=after_id,
     )
+    next_after_id = taches[-1].id if taches and len(taches) == limit else None
     return {
         "taches": [Tache.model_validate(item) for item in taches],
         "limit": limit,
-        "offset": offset,
+        "offset": None if after_id is not None else offset,
+        "after_id": after_id,
+        "next_after_id": next_after_id,
         "count": total,
     }
 
@@ -88,13 +106,8 @@ def create_tache_route(
 ) -> Tache:
     try:
         return Tache.model_validate(create_tache(db, tache_payload))
-    except DependencyValidationError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except IntegrityError as exc:
-        raise HTTPException(
-            status_code=422,
-            detail="Contrainte de dependance invalide",
-        ) from exc
+    except (DependencyValidationError, IntegrityError) as exc:
+        raise_from_tache_write_error(exc)
 
 
 @router.put(
@@ -111,13 +124,8 @@ def update_tache_route(
 ) -> Tache:
     try:
         tache_modifiee = update_tache(db, tache_id, tache_payload)
-    except DependencyValidationError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except IntegrityError as exc:
-        raise HTTPException(
-            status_code=422,
-            detail="Contrainte de dependance invalide",
-        ) from exc
+    except (DependencyValidationError, IntegrityError) as exc:
+        raise_from_tache_write_error(exc)
     if tache_modifiee is None:
         raise HTTPException(status_code=404, detail="Tache introuvable")
     return Tache.model_validate(tache_modifiee)
